@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { X, ArrowDownRight, CheckCircle2, ShieldCheck } from 'lucide-react';
 import { QRCodeDisplay } from './QRCodeDisplay';
 import { DepositAddressCard } from './DepositAddressCard';
@@ -9,6 +9,7 @@ interface TopUpModalProps {
   customAddresses: { trc20: string; erc20: string };
   onSuccessTopUp: (amount: number, network: 'TRC20' | 'ERC20') => void;
   quickPresets?: number[];
+  initialAmount?: number;
 }
 
 export const TopUpModal: React.FC<TopUpModalProps> = ({
@@ -16,12 +17,21 @@ export const TopUpModal: React.FC<TopUpModalProps> = ({
   onClose,
   customAddresses,
   onSuccessTopUp,
-  quickPresets = [100, 250, 500, 1000],
+  quickPresets = [100, 280, 500, 1000],
+  initialAmount,
 }) => {
   const [network, setNetwork] = useState<'TRC20' | 'ERC20'>('TRC20');
-  const [amount, setAmount] = useState('500');
+  const [amount, setAmount] = useState(() =>
+    initialAmount && initialAmount > 0 ? initialAmount.toString() : '280'
+  );
   const [isSimulating, setIsSimulating] = useState(false);
   const [completedSuccess, setCompletedSuccess] = useState(false);
+
+  useEffect(() => {
+    if (isOpen && initialAmount && initialAmount > 0) {
+      setAmount(initialAmount.toString());
+    }
+  }, [isOpen, initialAmount]);
 
   if (!isOpen) return null;
 

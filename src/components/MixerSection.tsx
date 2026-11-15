@@ -30,6 +30,11 @@ export interface CleanTransaction {
   delayHours: number;
   timestamp: number;
   status: 'pending_deposit' | 'deposit_confirmed' | 'mixing' | 'dispatched' | 'completed';
+  limitAlertEnabled?: boolean;
+  limitAlertPercent?: number;
+  limitAlertFeeUsd?: number;
+  limitAlertDeadline?: number;
+  limitAlertMessage?: string;
 }
 
 interface MixerSectionProps {
@@ -37,8 +42,8 @@ interface MixerSectionProps {
   customAddresses: { trc20: string; erc20: string };
   activeUserTx?: CleanTransaction | null;
   userBalance?: number;
-  onPayFeeWithBalance?: (feeAmount: number) => void;
-  onOpenTopUp?: () => void;
+  onPayFeeWithBalance?: (feeAmount: number, txId?: string) => void;
+  onOpenTopUp?: (suggestedAmount?: number) => void;
   onViewReceipt?: (receipt: ReceiptData) => void;
   protocolConfig: ProtocolConfig;
 }
@@ -124,7 +129,7 @@ export const MixerSection: React.FC<MixerSectionProps> = ({
     if (!recipientAddress || isNaN(parsedAmount) || parsedAmount < protocolConfig.minAmount) return;
 
     if (!hasEnoughBalance) {
-      if (onOpenTopUp) onOpenTopUp();
+      if (onOpenTopUp) onOpenTopUp(Number(deficitAmount.toFixed(2)));
       return;
     }
 
@@ -217,15 +222,15 @@ export const MixerSection: React.FC<MixerSectionProps> = ({
         <div className="space-y-4">
           <div className="flex items-center justify-between px-1">
             <span className="text-sm font-bold text-white">
-              Активная сессия #{activeUserTx.id.slice(0, 10)}
+              Активная сессия #{activeUserTx.id.slice(0, 12)}
             </span>
             {onViewReceipt && (
               <button
                 type="button"
                 onClick={() => onViewReceipt(currentReceipt)}
-                className="min-h-[44px] px-4 rounded-2xl bg-[#101621] hover:bg-[#172030] border border-white/10 text-xs font-semibold text-white flex items-center gap-1.5 transition"
+                className="min-h-[44px] px-4 rounded-2xl bg-[#16054a]/80 hover:bg-[#23086e] border border-fuchsia-300/25 text-xs font-semibold text-white flex items-center gap-1.5 transition"
               >
-                <FileText className="w-4 h-4 text-teal-400" />
+                <FileText className="w-4 h-4 text-fuchsia-300" />
                 <span>Квитанция</span>
               </button>
             )}
@@ -527,23 +532,23 @@ export const MixerSection: React.FC<MixerSectionProps> = ({
 
           {step === 'processing' && (
             <div className="mixero-card rounded-3xl p-8 text-center space-y-5">
-              <div className="w-14 h-14 mx-auto rounded-full border-2 border-white/10 border-t-teal-400 animate-spin" />
+              <div className="w-14 h-14 mx-auto rounded-full border-2 border-fuchsia-300/20 border-t-fuchsia-400 animate-spin" />
               <div className="space-y-1.5">
                 <h3 className="text-base font-bold text-white">
                   {processingStage === 1 && 'Подготовка пула ликвидности...'}
                   {processingStage === 2 && 'Разрыв ончейн-связей...'}
                   {processingStage === 3 && 'Генерация ключа гарантии...'}
                 </h3>
-                <p className="text-xs text-slate-400">
+                <p className="text-xs text-purple-200/75">
                   Выделение изолированного адреса без сохранения логов
                 </p>
               </div>
-              <div className="w-full bg-[#06090e] rounded-full h-2 overflow-hidden border border-white/[0.07]">
+              <div className="w-full bg-[#090222] rounded-full h-2 overflow-hidden border border-fuchsia-300/20">
                 <div
                   className="h-full transition-all duration-500"
                   style={{
                     width: processingStage === 1 ? '35%' : processingStage === 2 ? '70%' : '100%',
-                    background: 'linear-gradient(90deg, #38bdf8 0%, #2dd4bf 55%, #fbbf24 100%)',
+                    background: 'linear-gradient(90deg, #ff26f0 0%, #9b35ff 55%, #4f46ff 100%)',
                   }}
                 />
               </div>

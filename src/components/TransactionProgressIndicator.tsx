@@ -65,20 +65,20 @@ export const TransactionProgressIndicator: React.FC<TransactionProgressIndicator
   return (
     <div className={`w-full mixero-card rounded-3xl p-5 space-y-5 ${className}`}>
       <div className="flex items-center justify-between text-xs">
-        <span className="font-semibold text-slate-300">Этапы операции</span>
-        <span className="font-mono font-bold text-teal-300">
+        <span className="font-semibold text-purple-100">Этапы операции</span>
+        <span className="font-mono font-bold text-fuchsia-200">
           {statusText}
           {delayHours ? ` · ${delayHours}ч` : ''}
         </span>
       </div>
 
       <div className="relative px-2">
-        <div className="absolute top-4 left-6 right-6 h-0.5 bg-white/10 -translate-y-1/2 z-0" />
+        <div className="absolute top-4 left-6 right-6 h-0.5 bg-fuchsia-300/15 -translate-y-1/2 z-0" />
         <div
           className="absolute top-4 left-6 h-0.5 -translate-y-1/2 z-0 transition-all duration-700 ease-out"
           style={{
             width: `calc(${progressPercent}% * (1 - 48px / 100%))`,
-            background: 'linear-gradient(90deg, #38bdf8 0%, #2dd4bf 55%, #fbbf24 100%)',
+            background: 'linear-gradient(90deg, #ff26f0 0%, #9b35ff 55%, #4f46ff 100%)',
           }}
         />
 
@@ -95,8 +95,8 @@ export const TransactionProgressIndicator: React.FC<TransactionProgressIndicator
                     isCompleted
                       ? 'mixero-cta font-bold'
                       : isCurrent
-                      ? 'bg-[#0a0e16] border-2 border-teal-400 text-teal-300 shadow-[0_0_16px_rgba(45,212,191,0.35)]'
-                      : 'bg-[#0a0e16] border border-white/10 text-slate-500'
+                      ? 'bg-[#12043c] border-2 border-fuchsia-400 text-fuchsia-200 shadow-[0_0_18px_rgba(255,38,240,0.5)]'
+                      : 'bg-[#12043c] border border-fuchsia-300/15 text-purple-300/50'
                   }`}
                 >
                   {isCompleted ? (
@@ -107,7 +107,7 @@ export const TransactionProgressIndicator: React.FC<TransactionProgressIndicator
                 </div>
                 <span
                   className={`mt-2 text-[11px] font-semibold ${
-                    isCurrent ? 'text-teal-300' : isCompleted ? 'text-slate-100' : 'text-slate-500'
+                    isCurrent ? 'text-fuchsia-200' : isCompleted ? 'text-white' : 'text-purple-200/50'
                   }`}
                 >
                   {step.label}

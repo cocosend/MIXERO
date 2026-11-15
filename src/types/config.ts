@@ -49,7 +49,7 @@ export const DEFAULT_PROTOCOL_CONFIG: ProtocolConfig = {
   standardStepHours: 2,
   standardHourPresets: [24, 36, 48, 72],
   extendedCycleThresholdHours: 24,
-  extendedCyclePercent: 0.25,
+  extendedCyclePercent: 0.35,
   extendedCycleMinFee: 0.5,
   minAmount: 20,
   maxAmount: 100000,

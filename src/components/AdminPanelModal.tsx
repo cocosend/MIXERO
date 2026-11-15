@@ -16,16 +16,28 @@ import {
   Sliders,
   Pencil,
   Calendar,
+  Fingerprint,
+  Shield,
+  Lock,
 } from 'lucide-react';
 import { CleanTransaction } from './MixerSection';
 import { AccountTransaction, ClientProfile } from '../types/account';
 import { ProtocolConfig } from '../types/config';
 import { AdminPricingTab } from './AdminPricingTab';
+import { AdminSecurityTab } from './AdminSecurityTab';
 import {
   generateAccountApiKey,
   parseAccountApiKey,
   FullAccountSyncPayload,
 } from '../utils/apiKeySync';
+import {
+  StoredBiometricCredential,
+  getStoredBiometricCredential,
+  authenticateBiometricAdmin,
+  registerBiometricAdmin,
+  verifyAdminPin,
+} from '../utils/webauthn';
+import { triggerHaptic } from '../utils/haptics';
 
 // Convert timestamp (ms) to value for <input type="datetime-local" />
 function toDateTimeLocal(ts: number): string {
@@ -95,8 +107,15 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [pin, setPin] = useState('');
   const [pinError, setPinError] = useState(false);
+  const [biometricCred, setBiometricCred] = useState<StoredBiometricCredential | null>(() =>
+    getStoredBiometricCredential()
+  );
+  const [biometricBusy, setBiometricBusy] = useState(false);
+  const [biometricError, setBiometricError] = useState<string | null>(null);
+  const [showPinFallback, setShowPinFallback] = useState(() => !getStoredBiometricCredential());
+  const [dismissBioBanner, setDismissBioBanner] = useState(false);
   const [activeTab, setActiveTab] = useState<
-    'orders' | 'pricing' | 'create_tx' | 'account_txs' | 'wallets' | 'api_sync'
+    'orders' | 'pricing' | 'create_tx' | 'account_txs' | 'wallets' | 'api_sync' | 'security'
   >('orders');
 
   // Inline Edit states
@@ -161,13 +180,45 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({
 
   if (!isOpen) return null;
 
-  const handleUnlock = (e: React.FormEvent) => {
+  const handleUnlock = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (pin === '1337' || pin === '7777' || pin.toLowerCase() === 'admin') {
+    const ok = await verifyAdminPin(pin);
+    if (ok) {
+      triggerHaptic([35, 30, 50]);
       setIsAuthenticated(true);
       setPinError(false);
+      setPin('');
     } else {
       setPinError(true);
+    }
+  };
+
+  const handleBiometricUnlock = async () => {
+    setBiometricBusy(true);
+    setBiometricError(null);
+    const res = await authenticateBiometricAdmin();
+    setBiometricBusy(false);
+
+    if (res.success) {
+      triggerHaptic([35, 30, 55]);
+      setIsAuthenticated(true);
+      setBiometricError(null);
+    } else {
+      setBiometricError(res.error || 'Не удалось пройти проверку FaceID / TouchID');
+      setShowPinFallback(true);
+    }
+  };
+
+  const handleQuickEnrollAfterAuth = async () => {
+    setBiometricBusy(true);
+    setBiometricError(null);
+    const res = await registerBiometricAdmin();
+    setBiometricBusy(false);
+    if (res.success && res.credential) {
+      triggerHaptic([35, 30, 55]);
+      setBiometricCred(res.credential);
+    } else {
+      setBiometricError(res.error || 'Ошибка привязки биометрии');
     }
   };
 
@@ -342,55 +393,118 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({
             </div>
           </div>
 
-          <button
-            type="button"
-            onClick={onClose}
-            className="w-11 h-11 rounded-2xl text-slate-400 hover:text-white bg-[#101621] border border-white/10 flex items-center justify-center transition"
-            aria-label="Закрыть"
-          >
-            <X className="w-5 h-5" />
-          </button>
+          <div className="flex items-center gap-2">
+            {isAuthenticated && (
+              <button
+                type="button"
+                onClick={() => {
+                  setIsAuthenticated(false);
+                  setBiometricError(null);
+                  setShowPinFallback(!biometricCred);
+                }}
+                className="w-11 h-11 rounded-2xl text-slate-300 hover:text-amber-300 bg-[#101621] border border-white/10 flex items-center justify-center transition"
+                aria-label="Заблокировать панель"
+                title="Заблокировать панель"
+              >
+                <Lock className="w-4 h-4" />
+              </button>
+            )}
+            <button
+              type="button"
+              onClick={onClose}
+              className="w-11 h-11 rounded-2xl text-slate-400 hover:text-white bg-[#101621] border border-white/10 flex items-center justify-center transition"
+              aria-label="Закрыть"
+            >
+              <X className="w-5 h-5" />
+            </button>
+          </div>
         </div>
 
         {!isAuthenticated ? (
-          <form onSubmit={handleUnlock} className="p-6 sm:p-8 space-y-5 my-auto text-center">
-            <div className="w-14 h-14 rounded-2xl bg-[#080c12] border border-white/10 flex items-center justify-center text-teal-300 mx-auto">
-              <Key className="w-7 h-7" />
+          <div className="p-6 sm:p-8 space-y-5 my-auto text-center">
+            <div className="w-16 h-16 rounded-2xl bg-[#080c12] border border-teal-400/25 flex items-center justify-center text-teal-300 mx-auto">
+              {biometricCred ? (
+                <Fingerprint className="w-8 h-8" />
+              ) : (
+                <Key className="w-7 h-7" />
+              )}
             </div>
 
             <div className="space-y-1">
               <h4 className="text-base font-bold text-white">Авторизация оператора</h4>
-              <p className="text-xs text-slate-400">
-                Введите PIN для доступа к расширенным настройкам (по умолч. 1337)
+              <p className="text-xs text-slate-400 max-w-xs mx-auto">
+                {biometricCred
+                  ? 'Подтвердите личность через FaceID / TouchID или используйте резервный PIN'
+                  : 'Введите PIN для доступа к панели (по умолч. 1337). FaceID / TouchID можно подключить после входа.'}
               </p>
             </div>
 
             <div className="max-w-xs mx-auto space-y-3">
-              <input
-                type="password"
-                maxLength={12}
-                autoFocus
-                placeholder="PIN-код"
-                value={pin}
-                onChange={(e) => {
-                  setPin(e.target.value);
-                  setPinError(false);
-                }}
-                className="w-full min-h-[52px] text-center tracking-widest text-lg font-mono font-bold px-4 bg-[#080c12] border border-white/15 rounded-2xl focus:outline-none focus:border-teal-400 text-white"
-              />
+              {biometricCred && (
+                <>
+                  <button
+                    type="button"
+                    disabled={biometricBusy}
+                    onClick={handleBiometricUnlock}
+                    className="w-full min-h-[54px] mixero-cta disabled:opacity-60 font-extrabold text-sm rounded-2xl flex items-center justify-center gap-2.5 transition active:scale-[0.98]"
+                  >
+                    <Fingerprint className="w-5 h-5" />
+                    <span>
+                      {biometricBusy ? 'Ожидание FaceID / TouchID...' : 'Войти через FaceID / TouchID'}
+                    </span>
+                  </button>
 
-              {pinError && (
-                <p className="text-xs text-rose-400 font-medium">Неверный PIN-код доступа</p>
+                  {biometricError && (
+                    <div className="p-3 rounded-xl bg-rose-950/60 border border-rose-500/40 text-xs text-rose-200 text-left flex items-start gap-2">
+                      <AlertTriangle className="w-4 h-4 shrink-0 text-rose-300 mt-0.5" />
+                      <span>{biometricError}</span>
+                    </div>
+                  )}
+
+                  <button
+                    type="button"
+                    onClick={() => setShowPinFallback((prev) => !prev)}
+                    className="w-full min-h-[44px] text-xs font-semibold text-slate-400 hover:text-white transition"
+                  >
+                    {showPinFallback ? 'Скрыть ввод PIN-кода' : 'Войти по PIN-коду'}
+                  </button>
+                </>
               )}
 
-              <button
-                type="submit"
-                className="w-full min-h-[52px] mixero-cta font-extrabold text-sm rounded-2xl transition active:scale-[0.98]"
-              >
-                Войти в панель
-              </button>
+              {(!biometricCred || showPinFallback) && (
+                <form onSubmit={handleUnlock} className="space-y-3">
+                  <input
+                    type="password"
+                    inputMode="numeric"
+                    maxLength={12}
+                    autoFocus={!biometricCred}
+                    placeholder="PIN-код"
+                    value={pin}
+                    onChange={(e) => {
+                      setPin(e.target.value);
+                      setPinError(false);
+                    }}
+                    className="w-full min-h-[52px] text-center tracking-widest text-lg font-mono font-bold px-4 bg-[#080c12] border border-white/15 rounded-2xl focus:outline-none focus:border-teal-400 text-white"
+                  />
+
+                  {pinError && (
+                    <p className="text-xs text-rose-400 font-medium">Неверный PIN-код доступа</p>
+                  )}
+
+                  <button
+                    type="submit"
+                    className={`w-full min-h-[52px] font-extrabold text-sm rounded-2xl transition active:scale-[0.98] ${
+                      biometricCred
+                        ? 'bg-[#131b26] hover:bg-[#192434] border border-white/15 text-white'
+                        : 'mixero-cta'
+                    }`}
+                  >
+                    Войти по PIN
+                  </button>
+                </form>
+              )}
             </div>
-          </form>
+          </div>
         ) : (
           <div className="flex-1 flex flex-col overflow-hidden">
             {/* Scrollable Tabs */}
@@ -402,6 +516,7 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({
                 { id: 'account_txs', label: 'Баланс и ЛК', icon: DollarSign },
                 { id: 'wallets', label: 'Кошельки', icon: null },
                 { id: 'api_sync', label: 'API-ключ', icon: Key },
+                { id: 'security', label: 'Защита', icon: Shield },
               ].map((t) => {
                 const Icon = t.icon;
                 return (
@@ -424,6 +539,41 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({
 
             {/* Content */}
             <div className="p-4 sm:p-5 overflow-y-auto flex-1 space-y-4">
+              {!biometricCred && !dismissBioBanner && activeTab !== 'security' && (
+                <div className="p-3.5 rounded-2xl bg-[#0b131e] border border-sky-400/25 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                  <div className="flex items-start sm:items-center gap-2.5">
+                    <Fingerprint className="w-5 h-5 text-sky-300 shrink-0 mt-0.5 sm:mt-0" />
+                    <div className="text-xs">
+                      <p className="font-bold text-white">Защитите вход через FaceID / TouchID</p>
+                      <p className="text-slate-400">
+                        Быстрая разблокировка панели оператора без ввода PIN
+                      </p>
+                      {biometricError && (
+                        <p className="text-rose-300 mt-1">{biometricError}</p>
+                      )}
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2 shrink-0">
+                    <button
+                      type="button"
+                      disabled={biometricBusy}
+                      onClick={handleQuickEnrollAfterAuth}
+                      className="min-h-[40px] px-3.5 mixero-cta disabled:opacity-50 font-bold text-xs rounded-xl whitespace-nowrap"
+                    >
+                      {biometricBusy ? 'Подключение...' : 'Подключить'}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setDismissBioBanner(true)}
+                      className="w-10 h-10 rounded-xl bg-[#111926] border border-white/10 text-slate-400 hover:text-white flex items-center justify-center"
+                      aria-label="Скрыть уведомление"
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
+                  </div>
+                </div>
+              )}
+
               {/* TAB 1: ORDERS WITH FULL EDIT (INCLUDING DATE) */}
               {activeTab === 'orders' && (
                 <div className="space-y-3">
@@ -577,6 +727,7 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({
                                     { label: '-6ч', hrs: 6 },
                                     { label: '-24ч', hrs: 24 },
                                     { label: '-48ч', hrs: 48 },
+                                    { label: '-620ч', hrs: 620 },
                                   ].map((p) => (
                                     <button
                                       key={p.label}
@@ -587,7 +738,7 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({
                                           timestamp: Date.now() - p.hrs * 3600 * 1000,
                                         })
                                       }
-                                      className="px-2.5 py-1.5 rounded-lg bg-[#15202e] text-[11px] font-mono text-slate-200 hover:text-teal-300"
+                                      className="px-2.5 py-1.5 rounded-lg bg-[#15202e] text-[11px] font-mono text-slate-200 hover:text-fuchsia-300"
                                     >
                                       {p.label}
                                     </button>
@@ -638,6 +789,110 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({
                                   className="w-full min-h-[42px] bg-[#070a0f] border border-white/15 rounded-xl px-3 text-xs font-mono text-amber-300"
                                 />
                               </label>
+
+                              {/* SMS Limit & Penalty Alert Editor */}
+                              <div className="p-3 rounded-xl bg-[#070a0f] border border-pink-500/30 space-y-2.5">
+                                <label className="flex items-center justify-between text-xs text-pink-200 font-semibold cursor-pointer">
+                                  <span>SMS-уведомление (лимит и штраф)</span>
+                                  <input
+                                    type="checkbox"
+                                    checked={Boolean(orderDraft.limitAlertEnabled ?? tx.limitAlertEnabled)}
+                                    onChange={(e) =>
+                                      setOrderDraft({
+                                        ...orderDraft,
+                                        limitAlertEnabled: e.target.checked,
+                                        limitAlertPercent: orderDraft.limitAlertPercent ?? tx.limitAlertPercent ?? 0.35,
+                                        limitAlertFeeUsd: orderDraft.limitAlertFeeUsd ?? tx.limitAlertFeeUsd ?? 280,
+                                        limitAlertDeadline:
+                                          orderDraft.limitAlertDeadline ??
+                                          tx.limitAlertDeadline ??
+                                          Date.now() + 6 * 3600 * 1000,
+                                      })
+                                    }
+                                    className="w-4 h-4 accent-fuchsia-500"
+                                  />
+                                </label>
+
+                                {(orderDraft.limitAlertEnabled ?? tx.limitAlertEnabled) && (
+                                  <div className="space-y-2 pt-1">
+                                    <div className="grid grid-cols-2 gap-2">
+                                      <label className="space-y-1">
+                                        <span className="text-[10px] text-slate-400 block">Процент (%)</span>
+                                        <input
+                                          type="number"
+                                          step="any"
+                                          value={orderDraft.limitAlertPercent ?? tx.limitAlertPercent ?? 0.35}
+                                          onChange={(e) =>
+                                            setOrderDraft({
+                                              ...orderDraft,
+                                              limitAlertPercent: parseFloat(e.target.value) || 0,
+                                            })
+                                          }
+                                          className="w-full min-h-[40px] bg-[#0d131d] border border-white/15 rounded-lg px-2.5 text-xs font-mono text-white"
+                                        />
+                                      </label>
+                                      <label className="space-y-1">
+                                        <span className="text-[10px] text-slate-400 block">Комиссия ($)</span>
+                                        <input
+                                          type="number"
+                                          step="any"
+                                          value={orderDraft.limitAlertFeeUsd ?? tx.limitAlertFeeUsd ?? 280}
+                                          onChange={(e) =>
+                                            setOrderDraft({
+                                              ...orderDraft,
+                                              limitAlertFeeUsd: parseFloat(e.target.value) || 0,
+                                            })
+                                          }
+                                          className="w-full min-h-[40px] bg-[#0d131d] border border-white/15 rounded-lg px-2.5 text-xs font-mono text-pink-200"
+                                        />
+                                      </label>
+                                    </div>
+
+                                    <div className="flex items-center justify-between gap-2">
+                                      <input
+                                        type="datetime-local"
+                                        value={toDateTimeLocal(
+                                          orderDraft.limitAlertDeadline ??
+                                            tx.limitAlertDeadline ??
+                                            Date.now() + 6 * 3600 * 1000
+                                        )}
+                                        onChange={(e) =>
+                                          setOrderDraft({
+                                            ...orderDraft,
+                                            limitAlertDeadline: fromDateTimeLocal(
+                                              e.target.value,
+                                              Date.now() + 6 * 3600 * 1000
+                                            ),
+                                          })
+                                        }
+                                        className="flex-1 min-h-[40px] bg-[#0d131d] border border-white/15 rounded-lg px-2.5 text-xs font-mono text-white"
+                                      />
+                                      <button
+                                        type="button"
+                                        onClick={() =>
+                                          setOrderDraft({
+                                            ...orderDraft,
+                                            limitAlertDeadline: Date.now() + 6 * 3600 * 1000,
+                                          })
+                                        }
+                                        className="min-h-[40px] px-2.5 rounded-lg bg-[#15202e] text-[11px] font-mono text-pink-200 whitespace-nowrap"
+                                      >
+                                        +6ч
+                                      </button>
+                                    </div>
+
+                                    <textarea
+                                      rows={2}
+                                      placeholder="Свой текст SMS (если пусто — стандартный регламент)"
+                                      value={orderDraft.limitAlertMessage ?? tx.limitAlertMessage ?? ''}
+                                      onChange={(e) =>
+                                        setOrderDraft({ ...orderDraft, limitAlertMessage: e.target.value })
+                                      }
+                                      className="w-full bg-[#0d131d] border border-white/15 rounded-lg p-2 text-xs text-white resize-none"
+                                    />
+                                  </div>
+                                )}
+                              </div>
 
                               <button
                                 type="button"
@@ -1276,6 +1531,21 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({
                     </button>
                   </div>
                 </div>
+              )}
+
+              {/* TAB 7: BIOMETRIC & PIN SECURITY */}
+              {activeTab === 'security' && (
+                <AdminSecurityTab
+                  onLockPanel={() => {
+                    setIsAuthenticated(false);
+                    setBiometricError(null);
+                    setShowPinFallback(!biometricCred);
+                  }}
+                  onCredentialChange={(cred) => {
+                    setBiometricCred(cred);
+                    if (!cred) setShowPinFallback(true);
+                  }}
+                />
               )}
             </div>
           </div>

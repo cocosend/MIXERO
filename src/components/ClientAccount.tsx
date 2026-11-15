@@ -41,34 +41,34 @@ export const ClientAccount: React.FC<ClientAccountProps> = ({
       {/* Balance Hero Card */}
       <div className="mixero-card rounded-3xl p-5 sm:p-6 space-y-5 relative overflow-hidden">
         <div
-          className="absolute -top-24 -right-24 w-64 h-64 rounded-full blur-3xl opacity-25 pointer-events-none"
+          className="absolute -top-24 -right-24 w-64 h-64 rounded-full blur-3xl opacity-35 pointer-events-none"
           style={{
-            background: 'radial-gradient(circle, #2dd4bf 0%, #38bdf8 45%, #fbbf24 100%)',
+            background: 'radial-gradient(circle, #ff26f0 0%, #8f1fff 48%, #3a2bff 100%)',
           }}
         />
 
         {/* Identity Row */}
-        <div className="flex items-center justify-between pb-4 border-b border-white/[0.06] relative z-10">
+        <div className="flex items-center justify-between pb-4 border-b border-fuchsia-300/15 relative z-10">
           <div className="flex items-center gap-3">
             <MixeroLogo size={38} hasGlow={false} />
             <div>
               <span className="text-sm font-mono font-bold text-white block">
                 {profile.clientId}
               </span>
-              <span className="text-xs text-slate-400">
+              <span className="text-xs text-purple-200/75">
                 Анонимный счет · No-Log
               </span>
             </div>
           </div>
 
-          <span className="text-xs font-mono font-semibold text-teal-300">
+          <span className="text-xs font-mono font-semibold text-fuchsia-200">
             0% вычетов
           </span>
         </div>
 
         {/* Balance Display */}
         <div className="space-y-1.5 relative z-10">
-          <span className="text-xs font-medium text-slate-400 block">
+          <span className="text-xs font-medium text-purple-200/75 block">
             Баланс для оплаты комиссий
           </span>
           <div className="flex items-baseline gap-2.5">
@@ -78,9 +78,9 @@ export const ClientAccount: React.FC<ClientAccountProps> = ({
                 maximumFractionDigits: 2,
               })}
             </span>
-            <span className="text-sm font-bold text-slate-300 font-mono">USDT</span>
+            <span className="text-sm font-bold text-purple-100 font-mono">USDT</span>
           </div>
-          <p className="text-xs text-slate-400 leading-relaxed pt-1">
+          <p className="text-xs text-purple-200/75 leading-relaxed pt-1">
             Покрывает сборы протокола, чтобы получатель получал ровно 100% суммы без удержаний.
           </p>
         </div>
@@ -101,18 +101,18 @@ export const ClientAccount: React.FC<ClientAccountProps> = ({
               type="button"
               onClick={onOpenWithdraw}
               disabled={profile.balance <= 0}
-              className="min-h-[52px] px-4 bg-[#101621] hover:bg-[#161f2e] disabled:opacity-40 text-white font-bold text-sm rounded-2xl flex items-center justify-center gap-2 transition active:scale-[0.98] border border-white/10"
+              className="min-h-[52px] px-4 bg-[#16054a]/80 hover:bg-[#23086e] disabled:opacity-40 text-white font-bold text-sm rounded-2xl flex items-center justify-center gap-2 transition active:scale-[0.98] border border-fuchsia-300/20"
             >
-              <ArrowUpRight className="w-4 h-4 text-sky-400" />
+              <ArrowUpRight className="w-4 h-4 text-fuchsia-300" />
               <span>Вывести</span>
             </button>
 
             <button
               type="button"
               onClick={onNavigateToMixer}
-              className="min-h-[52px] px-4 bg-[#101621] hover:bg-[#161f2e] text-white font-bold text-sm rounded-2xl flex items-center justify-center gap-2 transition active:scale-[0.98] border border-white/10"
+              className="min-h-[52px] px-4 bg-[#16054a]/80 hover:bg-[#23086e] text-white font-bold text-sm rounded-2xl flex items-center justify-center gap-2 transition active:scale-[0.98] border border-fuchsia-300/20"
             >
-              <RefreshCw className="w-4 h-4 text-teal-400" />
+              <RefreshCw className="w-4 h-4 text-violet-300" />
               <span>Очистить</span>
             </button>
           </div>

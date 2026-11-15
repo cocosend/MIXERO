@@ -18,7 +18,7 @@ export const Header: React.FC<HeaderProps> = ({
   onOpenAccount,
 }) => {
   return (
-    <header className="relative flex items-center justify-between w-full pb-3.5 pt-1 border-b border-white/[0.07]">
+    <header className="relative flex items-center justify-between w-full pb-3.5 pt-1 border-b border-fuchsia-200/20">
       {/* Brand Lockup (5 taps opens Admin Panel) */}
       <button
         type="button"
@@ -37,12 +37,12 @@ export const Header: React.FC<HeaderProps> = ({
               </span>
             </h1>
             {adminClickCount > 0 && adminClickCount < 5 && (
-              <span className="text-[11px] font-mono text-amber-300 font-bold">
+              <span className="text-[11px] font-mono text-pink-200 font-bold">
                 {5 - adminClickCount}
               </span>
             )}
           </div>
-          <p className="text-[11px] text-slate-400 font-medium whitespace-nowrap">
+          <p className="text-[11px] text-fuchsia-100/75 font-medium whitespace-nowrap">
             No-Log · USDT Protocol
           </p>
         </div>
@@ -54,11 +54,11 @@ export const Header: React.FC<HeaderProps> = ({
           <button
             type="button"
             onClick={onOpenAccount}
-            className="min-h-[44px] px-3.5 py-2 rounded-2xl border border-white/10 bg-[#101621] hover:border-teal-400/40 text-white transition flex items-center gap-2 text-xs font-mono font-bold active:scale-[0.97] whitespace-nowrap"
+            className="min-h-[44px] px-3.5 py-2 rounded-2xl border border-fuchsia-200/25 bg-[#12043d]/80 backdrop-blur-md hover:border-fuchsia-300/60 text-white transition flex items-center gap-2 text-xs font-mono font-bold active:scale-[0.97] whitespace-nowrap"
             title="Открыть кабинет"
           >
-            <Wallet className="w-4 h-4 text-teal-400" />
-            <span className="tabular-nums text-amber-300">
+            <Wallet className="w-4 h-4 text-fuchsia-300" />
+            <span className="tabular-nums text-pink-200">
               {balance.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 2 })} $
             </span>
           </button>
@@ -67,10 +67,10 @@ export const Header: React.FC<HeaderProps> = ({
         <button
           type="button"
           onClick={onOpenPWAInstall}
-          className="min-h-[44px] min-w-[44px] px-3 py-2 rounded-2xl border border-white/10 bg-[#101621] hover:border-sky-400/40 text-slate-200 hover:text-white transition flex items-center justify-center gap-1.5 text-xs font-semibold active:scale-[0.97] whitespace-nowrap"
+          className="min-h-[44px] min-w-[44px] px-3 py-2 rounded-2xl border border-fuchsia-200/25 bg-[#12043d]/80 backdrop-blur-md hover:border-violet-300/60 text-white transition flex items-center justify-center gap-1.5 text-xs font-semibold active:scale-[0.97] whitespace-nowrap"
           title="Установить на iPhone"
         >
-          <Smartphone className="w-4 h-4 text-sky-400" />
+          <Smartphone className="w-4 h-4 text-fuchsia-300" />
           <span className="hidden sm:inline">iOS App</span>
         </button>
       </div>
