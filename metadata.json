@@ -1,0 +1,8 @@
+{
+  "name": "MIXERO 📼 — Anonymous USDT Protocol",
+  "description": "MIXERO — минималистичный протокол анонимной очистки USDT (TRC-20 / ERC-20) для iPhone PWA с гибкой панелью управления.",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}
