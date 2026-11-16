@@ -1,6 +1,5 @@
 import tailwindcss from '@tailwindcss/vite';
 import react from '@vitejs/plugin-react';
-import path from 'path';
 import {defineConfig} from 'vite';
 import {VitePWA} from 'vite-plugin-pwa';
 
@@ -13,6 +12,7 @@ export default defineConfig(() => {
         registerType: 'autoUpdate',
         includeAssets: [
           'icon.svg',
+          'app-icon.png',
           'apple-touch-icon.png',
           'apple-touch-icon-180x180.png',
           'apple-touch-icon-152x152.png',
@@ -24,11 +24,11 @@ export default defineConfig(() => {
         ],
         manifest: {
           id: '/',
-          name: 'MIXERO 📼 — Анонимный клининг USDT',
-          short_name: 'MIXERO',
-          description: 'Децентрализованный протокол очистки USDT (TRC-20 / ERC-20) без сохранения логов.',
-          theme_color: '#070a0f',
-          background_color: '#06090e',
+          name: 'MIXERO•CRYPTO',
+          short_name: 'MIXERO•CRYPTO',
+          description: 'MIXERO•CRYPTO — децентрализованный протокол очистки и разрыва цифрового следа USDT (TRC-20 / ERC-20) без сохранения логов.',
+          theme_color: '#053E45',
+          background_color: '#03262A',
           display: 'standalone',
           start_url: '/',
           scope: '/',
@@ -60,7 +60,7 @@ export default defineConfig(() => {
     ],
     resolve: {
       alias: {
-        '@': path.resolve(__dirname, '.'),
+        '@': import.meta.dirname,
       },
     },
     server: {

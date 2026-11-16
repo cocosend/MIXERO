@@ -168,8 +168,16 @@ export async function registerBiometricAdmin(
   }
 }
 
+export interface BiometricAssertionProof {
+  credentialId: string;
+  challenge: string;
+  signaturePreview: string;
+  verifiedAt: number;
+}
+
 export async function authenticateBiometricAdmin(): Promise<{
   success: boolean;
+  proof?: BiometricAssertionProof;
   error?: string;
 }> {
   const stored = getStoredBiometricCredential();
@@ -225,7 +233,18 @@ export async function authenticateBiometricAdmin(): Promise<{
       return { success: false, error: 'Ошибка проверки криптографического challenge WebAuthn' };
     }
 
-    return { success: true };
+    const sigDigest = await crypto.subtle.digest('SHA-256', response.signature);
+    const signaturePreview = bufferToBase64Url(sigDigest).slice(0, 16).toUpperCase();
+
+    return {
+      success: true,
+      proof: {
+        credentialId: stored.credentialId,
+        challenge: expectedChallenge.slice(0, 12),
+        signaturePreview,
+        verifiedAt: Date.now(),
+      },
+    };
   } catch (err) {
     const msg =
       err instanceof DOMException && err.name === 'NotAllowedError'

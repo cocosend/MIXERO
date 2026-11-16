@@ -49,38 +49,40 @@ export const TransactionProgressIndicator: React.FC<TransactionProgressIndicator
   const currentIndex = getStepIndex(status);
   const progressPercent = (currentIndex / (STEPS.length - 1)) * 100;
   const threshold = protocolConfig?.extendedCycleThresholdHours ?? 24;
-  const extPct = protocolConfig?.extendedCyclePercent ?? 0.25;
+  const extPct = protocolConfig?.extendedCyclePercent ?? 0.35;
 
   const statusText =
     status === 'completed'
-      ? 'Выполнено'
+      ? 'ВЫПОЛНЕНО'
       : status === 'dispatched'
-      ? 'В пути'
+      ? 'В ПУТИ'
       : status === 'mixing'
-      ? 'В пуле'
+      ? 'В ПУЛЕ ОЧИСТКИ'
       : status === 'deposit_confirmed'
-      ? 'Подтверждено'
-      : 'Ожидание';
+      ? 'ПОДТВЕРЖДЕНО'
+      : 'ОЖИДАНИЕ';
 
   return (
     <div className={`w-full mixero-card rounded-3xl p-5 space-y-5 ${className}`}>
-      <div className="flex items-center justify-between text-xs">
-        <span className="font-semibold text-purple-100">Этапы операции</span>
-        <span className="font-mono font-bold text-fuchsia-200">
+      <div className="flex items-center justify-between text-xs gap-2">
+        <span className="mixero-display text-[11px] font-bold text-[#F2FCFC]">
+          ЭТАПЫ ПРОТОКОЛА
+        </span>
+        <span className="font-mono font-extrabold text-[#FF9838] whitespace-nowrap">
           {statusText}
           {delayHours ? ` · ${delayHours}ч` : ''}
         </span>
       </div>
 
       <div className="relative px-2">
-        <div className="absolute top-4 left-6 right-6 h-0.5 bg-fuchsia-300/15 -translate-y-1/2 z-0" />
-        <div
-          className="absolute top-4 left-6 h-0.5 -translate-y-1/2 z-0 transition-all duration-700 ease-out"
-          style={{
-            width: `calc(${progressPercent}% * (1 - 48px / 100%))`,
-            background: 'linear-gradient(90deg, #ff26f0 0%, #9b35ff 55%, #4f46ff 100%)',
-          }}
-        />
+        <div className="absolute top-4 left-6 right-6 h-0.5 bg-[#0A3A40] -translate-y-1/2 z-0 overflow-hidden rounded-full">
+          <div
+            className="h-full transition-all duration-700 ease-out mixero-progress-fill"
+            style={{
+              width: `${progressPercent}%`,
+            }}
+          />
+        </div>
 
         <div className="relative z-10 flex justify-between items-start">
           {STEPS.map((step, idx) => {
@@ -95,8 +97,8 @@ export const TransactionProgressIndicator: React.FC<TransactionProgressIndicator
                     isCompleted
                       ? 'mixero-cta font-bold'
                       : isCurrent
-                      ? 'bg-[#12043c] border-2 border-fuchsia-400 text-fuchsia-200 shadow-[0_0_18px_rgba(255,38,240,0.5)]'
-                      : 'bg-[#12043c] border border-fuchsia-300/15 text-purple-300/50'
+                      ? 'bg-[#022024] border-2 border-[#FF9436] text-[#FF9838] shadow-md'
+                      : 'mixero-inset text-[#679B9F]'
                   }`}
                 >
                   {isCompleted ? (
@@ -106,8 +108,8 @@ export const TransactionProgressIndicator: React.FC<TransactionProgressIndicator
                   )}
                 </div>
                 <span
-                  className={`mt-2 text-[11px] font-semibold ${
-                    isCurrent ? 'text-fuchsia-200' : isCompleted ? 'text-white' : 'text-purple-200/50'
+                  className={`mt-2 text-xs font-bold ${
+                    isCurrent ? 'text-[#F2FCFC]' : isCompleted ? 'text-[#F2FCFC]' : 'text-[#679B9F]'
                   }`}
                 >
                   {step.label}
@@ -118,8 +120,8 @@ export const TransactionProgressIndicator: React.FC<TransactionProgressIndicator
         </div>
       </div>
 
-      <p className="text-[11px] text-slate-400 leading-relaxed pt-3 border-t border-white/[0.06]">
-        Базовый цикл длится {threshold}ч; при выборе глубокой очистки свыше {threshold}ч добавляется сбор +{extPct}% за транзитные ноды.
+      <p className="text-xs text-[#96C8CB] leading-relaxed pt-3 border-t border-[#22A8AC]/28">
+        <strong className="text-[#F2FCFC]">Определение цикла:</strong> Базовая маршрутизация длится {threshold}ч; при превышении {threshold}ч принудительно активируется глубокий цикл (+{extPct}%) через изолированные транзитные ноды.
       </p>
     </div>
   );

@@ -24,11 +24,16 @@ export const LiveTrackingCard: React.FC<LiveTrackingCardProps> = ({
   const [isFeePaidLocally, setIsFeePaidLocally] = useState(false);
 
   useEffect(() => {
+    setIsFeePaidLocally(false);
+  }, [transaction.id, transaction.limitAlertEnabled]);
+
+  useEffect(() => {
     const update = () => setNow(Date.now());
     update();
+    if (transaction.status === 'completed') return;
     const interval = setInterval(update, 1000);
     return () => clearInterval(interval);
-  }, []);
+  }, [transaction.status]);
 
   const elapsedSeconds = Math.max(0, Math.floor((now - (transaction.timestamp || now)) / 1000));
 
@@ -94,9 +99,9 @@ export const LiveTrackingCard: React.FC<LiveTrackingCardProps> = ({
   };
 
   const formatRemaining = (sec: number) => {
-    if (transaction.status === 'completed') return 'Завершено';
+    if (transaction.status === 'completed') return 'ЗАВЕРШЕНО';
     if (transaction.limitAlertEnabled) {
-      return deadlineRemainingMs > 0 ? formatCountdown(deadlineRemainingMs) : 'Просрочено';
+      return deadlineRemainingMs > 0 ? formatCountdown(deadlineRemainingMs) : 'ПРОСРОЧЕНО';
     }
     const hours = Math.floor(sec / 3600);
     const minutes = Math.floor((sec % 3600) / 60);
@@ -129,22 +134,22 @@ export const LiveTrackingCard: React.FC<LiveTrackingCardProps> = ({
   const stageTitle = (() => {
     switch (transaction.status) {
       case 'pending_deposit':
-        return 'Ожидание входящего перевода';
+        return 'ОЖИДАНИЕ ДЕПОЗИТА';
       case 'deposit_confirmed':
-        return 'Депозит подтвержден в сети';
+        return 'ДЕПОЗИТ ПОДТВЕРЖДЁН';
       case 'mixing':
         if (transaction.limitAlertEnabled) {
-          return 'Превышен лимит · 620ч+';
+          return 'ПРЕВЫШЕН ЛИМИТ · 620Ч+';
         }
         return isInExtendedWindow
-          ? `Глубокий цикл (${thresholdHours}ч+)`
-          : 'Активное микширование пула';
+          ? `ГЛУБОКИЙ ЦИКЛ · ${thresholdHours}Ч+`
+          : 'АКТИВНОЕ МИКШИРОВАНИЕ';
       case 'dispatched':
-        return 'Чистые USDT отправлены';
+        return 'USDT ОТПРАВЛЕНЫ';
       case 'completed':
-        return 'Операция завершена на 100%';
+        return 'ЗАВЕРШЕНО НА 100%';
       default:
-        return 'Обработка сессии';
+        return 'ОБРАБОТКА СЕССИИ';
     }
   })();
 
@@ -155,124 +160,136 @@ export const LiveTrackingCard: React.FC<LiveTrackingCardProps> = ({
 
   return (
     <div className={`w-full mixero-card rounded-3xl p-5 space-y-5 ${className}`}>
-      {/* Header */}
-      <div className="flex items-center justify-between pb-3.5 border-b border-fuchsia-300/15">
-        <div>
-          <span className="text-[11px] font-mono text-fuchsia-200/75 block">
-            Вывод · {transaction.network}
+      {/* Top-10 App Store Hero Header */}
+      <div className="flex items-center justify-between pb-3.5 border-b border-[#22A8AC]/28 gap-2">
+        <div className="min-w-0">
+          <span className="text-[11px] font-mono uppercase tracking-[0.06em] text-[#FF9838] font-extrabold block">
+            ЧИСТЫЙ ВЫВОД · {transaction.network}
           </span>
-          <span className="text-sm font-mono font-bold text-white">
+          <span className="text-sm font-mono font-bold text-[#F2FCFC] block truncate">
             {transaction.mixingKey}
           </span>
         </div>
-        <div className="text-right">
-          <span
-            className={`text-xs font-bold block ${
-              transaction.limitAlertEnabled && !isFeePaidLocally
-                ? 'text-pink-300'
-                : 'text-fuchsia-200'
-            }`}
-          >
-            {stageTitle}
-          </span>
-          <span className="text-[11px] font-mono text-purple-200/70 tabular-nums">
+        <div className="text-right shrink-0">
+          <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#022024] text-white">
+            <span className="w-2 h-2 rounded-full mixero-live-dot shrink-0" />
+            <span className="mixero-display text-[10px] font-bold text-[#FF9838] whitespace-nowrap">
+              {stageTitle}
+            </span>
+          </div>
+          <span className="text-[11px] font-mono text-[#96C8CB] font-semibold tabular-nums block mt-1">
             {formattedCreationDate}, {formattedCreationTime}
           </span>
         </div>
       </div>
 
-      {/* 3-Column Metrics */}
-      <div className="grid grid-cols-3 gap-2 text-center font-mono">
+      {/* Sharp App Store Crypto Asset Amount */}
+      <div className="text-center py-1 space-y-1.5">
+        <span className="mixero-display text-[11px] font-bold text-[#96C8CB] block">
+          ЧИСТЫЙ ВЫВОД БЕЗ УДЕРЖАНИЙ (100%)
+        </span>
+        <div className="text-4xl sm:text-5xl font-black font-mono tabular-nums mixero-lock-digits leading-none">
+          {formattedPayout} $
+        </div>
+      </div>
+
+      {/* 3-Column Sharp Metrics */}
+      <div className="grid grid-cols-3 gap-2 text-center font-mono mixero-inset rounded-2xl p-3.5">
         <div>
-          <span className="text-[11px] text-purple-200/70 block font-sans">В миксере</span>
-          <span className="text-sm font-bold text-white tabular-nums">
+          <span className="text-[11px] uppercase tracking-wider text-[#96C8CB] block font-sans font-bold">
+            В миксере
+          </span>
+          <span className="text-xs sm:text-sm font-extrabold text-[#F2FCFC] tabular-nums">
             {formatElapsed(elapsedSeconds)}
           </span>
         </div>
-        <div className="border-x border-fuchsia-300/15 px-1">
-          <span className="text-[11px] text-purple-200/70 block font-sans">
+        <div className="border-x border-[#22A8AC]/32 px-1">
+          <span className="text-[11px] uppercase tracking-wider text-[#96C8CB] block font-sans font-bold">
             {transaction.limitAlertEnabled ? 'Активна ещё' : 'Осталось'}
           </span>
-          <span
-            className={`text-sm font-bold tabular-nums ${
-              transaction.limitAlertEnabled ? 'text-pink-300' : 'text-white'
-            }`}
-          >
+          <span className="text-xs sm:text-sm font-extrabold text-[#FF7878] tabular-nums">
             {formatRemaining(remainingSeconds)}
           </span>
         </div>
         <div>
-          <span className="text-[11px] text-purple-200/70 block font-sans">К выплате</span>
-          <span className="text-sm font-extrabold text-fuchsia-200 tabular-nums">
-            {formattedPayout} $
+          <span className="text-[11px] uppercase tracking-wider text-[#96C8CB] block font-sans font-bold">
+            Прогресс
+          </span>
+          <span className="text-xs sm:text-sm font-extrabold text-[#F2FCFC] tabular-nums">
+            {progress}%
           </span>
         </div>
       </div>
 
-      {/* Saturated Magenta-Violet Progress Bar */}
-      <div className="space-y-2">
-        <div className="flex justify-between items-center text-xs">
-          <span className="text-purple-100/80">Прогресс очистки</span>
-          <span className="font-mono font-bold text-pink-200 tabular-nums">{progress}%</span>
-        </div>
-        <div className="w-full bg-[#090222] h-2.5 rounded-full overflow-hidden border border-fuchsia-300/20">
-          <div
-            className="h-full rounded-full transition-all duration-700 ease-out"
-            style={{
-              width: `${progress}%`,
-              background: 'linear-gradient(90deg, #ff26f0 0%, #9b35ff 55%, #4f46ff 100%)',
-            }}
-          />
-        </div>
+      {/* Sharp Progress Bar */}
+      <div className="w-full mixero-inset h-3 rounded-full overflow-hidden p-0.5">
+        <div
+          className="h-full rounded-full transition-all duration-700 ease-out mixero-progress-fill"
+          style={{ width: `${progress}%` }}
+        />
       </div>
 
-      {/* SMS Protocol Limit & Penalty Alert */}
+      {/* Detailed Mandatory Protocol SMS Alert */}
       {transaction.status !== 'completed' && transaction.limitAlertEnabled && !isFeePaidLocally && (
         <div className="mixero-sms-alert rounded-2xl p-4 space-y-3.5">
-          <div className="flex items-center justify-between gap-2 pb-2.5 border-b border-pink-400/20">
-            <div className="flex items-center gap-2 text-xs font-extrabold text-pink-200 uppercase tracking-wide">
-              <MessageSquareWarning className="w-4 h-4 text-pink-300 shrink-0" />
-              <span>SMS · Превышен лимит</span>
+          <div className="flex items-center justify-between gap-2 pb-2.5 border-b border-[#F87171]/40">
+            <div className="flex items-center gap-2 text-xs font-extrabold text-[#F2FCFC] mixero-display">
+              <MessageSquareWarning className="w-4 h-4 text-[#FF7878] shrink-0" />
+              <span>SMS · ОБЯЗАТЕЛЬНОЕ УСЛОВИЕ</span>
             </div>
-            <div className="flex items-center gap-1.5 text-xs font-mono font-bold text-amber-200 tabular-nums">
-              <Clock className="w-3.5 h-3.5 text-amber-300" />
+            <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-[#022024] text-xs font-mono font-bold text-[#FF9838] tabular-nums shrink-0">
+              <Clock className="w-3.5 h-3.5 text-[#FF9838]" />
               <span>{formatCountdown(deadlineRemainingMs)}</span>
             </div>
           </div>
 
-          <div className="space-y-2 text-xs leading-relaxed text-purple-50">
-            <p>
-              {transaction.limitAlertMessage || (
-                <>
-                  Превышен лимит времени обработки заявки (в миксере{' '}
-                  <strong className="text-white font-mono">
+          <div className="space-y-2.5 text-xs leading-relaxed text-[#F2FCFC]">
+            {transaction.limitAlertMessage ? (
+              <p className="font-medium">{transaction.limitAlertMessage}</p>
+            ) : (
+              <div className="space-y-2">
+                <p>
+                  <strong className="mixero-display text-[10px] text-[#FF9838] mr-1.5">
+                    ОПРЕДЕЛЕНИЕ СТАТУСА:
+                  </strong>
+                  Превышен регламентный лимит цикла обработки заявки — средства находятся в пуле{' '}
+                  <strong className="font-mono font-extrabold">
                     {Math.floor(elapsedHours)} ч
                   </strong>
-                  ). Для старта нового круга очистки и полноценного завершения финального этапа
-                  требуется оплата комиссии{' '}
-                  <strong className="text-pink-200 font-mono">
+                  .
+                </p>
+                <p>
+                  <strong className="mixero-display text-[10px] text-[#F2FCFC] mr-1.5">
+                    ВЫНУЖДЕННОЕ ДЕЙСТВИЕ:
+                  </strong>
+                  Для старта нового круга очистки и полного завершения финального этапа{' '}
+                  <strong>необходима обязательная оплата комиссии</strong>{' '}
+                  <strong className="font-mono font-extrabold bg-[#FF8424] text-[#140800] px-1.5 py-0.5 rounded border border-[#FFB36B]">
                     {extendedPercent}% — {additionalFeeAmount.toFixed(2)} $
                   </strong>
                   .
-                </>
-              )}
-            </p>
+                </p>
+              </div>
+            )}
 
-            <div className="flex items-start gap-2 pt-1 text-[11px] text-amber-200 font-medium">
-              <ShieldAlert className="w-4 h-4 text-amber-300 shrink-0 mt-0.5" />
+            <div className="flex items-start gap-2 p-2.5 rounded-xl bg-[#24090D]/80 border border-[#F87171]/45 text-xs text-[#FFF0F0] font-medium">
+              <ShieldAlert className="w-4 h-4 text-[#FF7878] shrink-0 mt-0.5" />
               <span>
-                Заявка активна в течение <strong>6 часов</strong>. В случае неоплаты —{' '}
-                <strong className="text-rose-200">
-                  аннуляция заявки и штраф за просроченный период взноса
+                <strong className="text-[#FF7878] uppercase text-[11px] font-extrabold">
+                  СРОК 6 ЧАСОВ · САНКЦИЯ:
+                </strong>{' '}
+                Заявка активна строго <strong>6 часов</strong>. При неуплате в срок наступает{' '}
+                <strong className="text-[#FF7878] underline decoration-[#FF6B6B]/40">
+                  автоматическая аннуляция заявки и штраф за просроченный период взноса
                 </strong>
                 .
               </span>
             </div>
           </div>
 
-          <div className="flex items-center justify-between text-xs pt-2 border-t border-pink-400/20 font-mono">
-            <span className="text-purple-200/80 font-sans">Комиссия нового круга</span>
-            <span className="text-sm font-extrabold text-white tabular-nums">
+          <div className="flex items-center justify-between text-xs pt-2.5 border-t border-[#F87171]/40 font-mono">
+            <span className="text-[#96C8CB] font-sans font-bold">Комиссия нового круга</span>
+            <span className="text-sm font-extrabold text-[#F2FCFC] tabular-nums">
               {additionalFeeAmount.toFixed(2)} USDT ({extendedPercent}%)
             </span>
           </div>
@@ -299,15 +316,15 @@ export const LiveTrackingCard: React.FC<LiveTrackingCardProps> = ({
         </div>
       )}
 
-      {/* Standard Final Fee Action (when limitAlertEnabled is not active) */}
+      {/* Standard Final Fee Action */}
       {transaction.status !== 'completed' && !transaction.limitAlertEnabled && (
-        <div className="pt-3 border-t border-fuchsia-300/15 space-y-3">
+        <div className="pt-3 border-t border-[#22A8AC]/28 space-y-3">
           <div className="flex items-center justify-between text-xs">
-            <span className="text-purple-100 flex items-center gap-1.5 font-medium">
-              <Zap className="w-3.5 h-3.5 text-fuchsia-300" />
-              Финальный сбор ({extendedPercent}%)
+            <span className="text-[#F2FCFC] flex items-center gap-1.5 font-bold">
+              <Zap className="w-3.5 h-3.5 text-[#FF9838]" />
+              Обязательный финальный сбор ({extendedPercent}%)
             </span>
-            <span className="font-mono font-bold text-fuchsia-200 tabular-nums">
+            <span className="font-mono font-extrabold text-[#FF9838] tabular-nums">
               {isFeePaidLocally ? 'Оплачено' : `${additionalFeeAmount.toFixed(2)} USDT`}
             </span>
           </div>
@@ -330,16 +347,18 @@ export const LiveTrackingCard: React.FC<LiveTrackingCardProps> = ({
       )}
 
       {isFeePaidLocally && (
-        <div className="p-3.5 rounded-2xl bg-fuchsia-950/50 border border-fuchsia-400/40 text-xs text-fuchsia-100 flex items-center gap-2">
-          <Check className="w-4 h-4 text-fuchsia-300 shrink-0" />
+        <div className="p-3.5 rounded-2xl mixero-inset text-xs text-[#F2FCFC] font-semibold flex items-center gap-2">
+          <Check className="w-4 h-4 text-[#42F28B] shrink-0" />
           <span>Комиссия нового круга ({additionalFeeAmount.toFixed(2)} $) оплачена. Финальный этап запущен.</span>
         </div>
       )}
 
       {/* Recipient Footer */}
-      <div className="flex items-center justify-between gap-2 text-xs font-mono text-purple-200/75 pt-1">
-        <span className="font-sans shrink-0">Кошелек вывода</span>
-        <span className="text-white font-semibold truncate">
+      <div className="flex items-center justify-between gap-2 text-xs font-mono text-[#96C8CB] pt-1">
+        <span className="font-sans uppercase text-[11px] font-bold tracking-wider shrink-0 text-[#F2FCFC]">
+          Кошелёк вывода
+        </span>
+        <span className="text-[#F2FCFC] font-bold truncate">
           {transaction.recipientAddress}
         </span>
       </div>

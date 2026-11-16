@@ -1,6 +1,7 @@
 @import "tailwindcss";
 
 @theme {
+  --font-display: "Unbounded", "Plus Jakarta Sans", -apple-system, BlinkMacSystemFont, sans-serif;
   --font-sans: "Plus Jakarta Sans", -apple-system, BlinkMacSystemFont, "SF Pro Display", sans-serif;
   --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
 }
@@ -11,26 +12,48 @@
     --sab: env(safe-area-inset-bottom, 0px);
     --sal: env(safe-area-inset-left, 0px);
     --sar: env(safe-area-inset-right, 0px);
+
+    /* Dark Teal + Tangerine Orange Theme (Тёмно-бирюзовый + Апельсиновый) */
+    --bg-base: #03262A;
+    --bg-gradient:
+      radial-gradient(92% 45% at 18% 0%, rgba(18, 148, 152, 0.44) 0%, rgba(5, 62, 68, 0.18) 48%, rgba(3, 38, 42, 0) 78%),
+      radial-gradient(82% 42% at 88% 100%, rgba(255, 118, 26, 0.28) 0%, rgba(235, 88, 8, 0.12) 48%, rgba(3, 38, 42, 0) 80%),
+      radial-gradient(68% 36% at 85% 16%, rgba(255, 142, 46, 0.14) 0%, rgba(3, 38, 42, 0) 70%),
+      linear-gradient(180deg, #053E45 0%, #032B30 38%, #021E22 72%, #053236 100%);
+
+    /* Frosted Dark Teal Glass Surfaces */
+    --card-bg: rgba(4, 34, 38, 0.82);
+    --card-border: rgba(36, 178, 182, 0.28);
+    --surface-bg: rgba(5, 42, 47, 0.88);
+    --surface-border: rgba(36, 178, 182, 0.24);
+    --pill-bg: rgba(5, 44, 49, 0.86);
+    --pill-border: rgba(255, 140, 46, 0.34);
+    --inset-bg: rgba(2, 22, 25, 0.78);
+    --inset-border: rgba(34, 168, 172, 0.24);
+
+    /* Juicy Tangerine Orange Primary CTA */
+    --cta-bg: linear-gradient(135deg, #FFA23A 0%, #FF7B1C 52%, #EE5800 100%);
+    --cta-border: rgba(255, 198, 134, 0.65);
+    --cta-shadow: 0 10px 26px -8px rgba(255, 118, 22, 0.56), inset 0 1px 0 rgba(255, 255, 255, 0.45);
+
+    --ink-primary: #F2FCFC;
+    --ink-secondary: #96C8CB;
+    --accent-ink: #FF9838;
+    --progress-bg: linear-gradient(90deg, #109EA3 0%, #2AD6CE 38%, #FF8424 100%);
+    --live-color: #24E57A;
   }
 
   html {
-    background-color: #16028c;
+    background-color: var(--bg-base);
     font-family: var(--font-sans);
     -webkit-text-size-adjust: 100%;
   }
 
   body {
-    background-color: #16028c;
-    background-image: linear-gradient(
-      172deg,
-      #ff00e6 0%,
-      #9d0cff 24%,
-      #3d06ff 58%,
-      #1b02a8 84%,
-      #100168 100%
-    );
+    background-color: var(--bg-base);
+    background-image: var(--bg-gradient);
     background-attachment: fixed;
-    color: #ffffff;
+    color: var(--ink-primary);
     -webkit-tap-highlight-color: transparent;
     -webkit-touch-callout: none;
     overscroll-behavior-y: none;
@@ -54,18 +77,47 @@
   padding-bottom: max(0.75rem, env(safe-area-inset-bottom, 0px));
 }
 
-/* Custom Range Slider in Saturated Neon Magenta -> Electric Violet -> Cobalt */
+/* Expressive Capitalized Display Typography (Unbounded) */
+.mixero-display {
+  font-family: var(--font-display);
+  text-transform: uppercase;
+  letter-spacing: 0.045em;
+}
+
+/* Sharp Hero Numerals with Subtle Tangerine & Teal Rim */
+.mixero-lock-digits {
+  color: #FFFFFF;
+  text-shadow:
+    0 0 22px rgba(255, 136, 38, 0.34),
+    0 2px 0 rgba(16, 158, 163, 0.55);
+  letter-spacing: -0.03em;
+}
+
+.mixero-accent-text {
+  color: #FF9838;
+}
+
+.mixero-blue-text {
+  color: #36D6DA;
+}
+
+.mixero-magenta-text {
+  color: #FF7878;
+}
+
+.mixero-live-dot {
+  background-color: var(--live-color);
+  box-shadow: 0 0 0 4px rgba(36, 229, 122, 0.22);
+}
+
+/* Custom Dark Teal + Tangerine Range Slider */
 input[type="range"].mixero-range {
   -webkit-appearance: none;
   appearance: none;
   height: 8px;
   border-radius: 9999px;
-  background: linear-gradient(
-    90deg,
-    rgba(255, 0, 230, 0.55),
-    rgba(148, 26, 255, 0.72),
-    rgba(56, 38, 255, 0.72)
-  );
+  background: linear-gradient(90deg, #FF8424 0%, #1DB5B8 55%, #063D42 100%);
+  border: 1px solid rgba(255, 146, 52, 0.38);
   outline: none;
 }
 
@@ -75,45 +127,97 @@ input[type="range"].mixero-range::-webkit-slider-thumb {
   width: 24px;
   height: 24px;
   border-radius: 9999px;
-  background: linear-gradient(135deg, #ff70f5 0%, #c084fc 52%, #60a5fa 100%);
-  border: 2px solid #16028c;
-  box-shadow: 0 0 18px rgba(255, 0, 230, 0.75);
+  background: #FF8424;
+  border: 2.5px solid #F2FCFC;
+  box-shadow: 0 0 14px rgba(255, 132, 36, 0.68);
   cursor: pointer;
 }
 
-/* Frosted Ultra-Saturated Glass Cards */
+/* Frosted Dark Teal Glass Cards */
 .mixero-card {
-  background: linear-gradient(180deg, rgba(13, 4, 46, 0.80) 0%, rgba(8, 2, 31, 0.88) 100%);
-  backdrop-filter: blur(22px);
-  -webkit-backdrop-filter: blur(22px);
-  border: 1px solid rgba(255, 168, 250, 0.22);
-  box-shadow: 0 18px 44px -12px rgba(7, 0, 38, 0.72), inset 0 1px 0 rgba(255, 255, 255, 0.16);
-}
-
-.mixero-sms-alert {
-  background: linear-gradient(145deg, rgba(46, 5, 62, 0.90) 0%, rgba(20, 3, 48, 0.92) 100%);
+  background: var(--card-bg);
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
-  border: 1px solid rgba(255, 92, 184, 0.52);
-  box-shadow: 0 14px 36px -8px rgba(255, 0, 179, 0.36), inset 0 1px 0 rgba(255, 190, 235, 0.22);
+  border: 1px solid var(--card-border);
+  box-shadow:
+    0 18px 40px -16px rgba(0, 14, 16, 0.72),
+    inset 0 1px 0 rgba(120, 232, 235, 0.14);
 }
 
+.mixero-surface {
+  background: var(--surface-bg);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+  border: 1px solid var(--surface-border);
+}
+
+.mixero-pill {
+  background: var(--pill-bg);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid var(--pill-border);
+  box-shadow: 0 8px 20px -8px rgba(0, 14, 16, 0.58);
+}
+
+.mixero-inset {
+  background: var(--inset-bg);
+  border: 1px solid var(--inset-border);
+}
+
+.mixero-input {
+  background: rgba(2, 20, 23, 0.88);
+  border: 1.5px solid rgba(36, 178, 182, 0.32);
+  color: #F2FCFC;
+  transition: border-color 0.16s ease, box-shadow 0.16s ease;
+}
+
+.mixero-input::placeholder {
+  color: #679B9F;
+}
+
+.mixero-input:focus {
+  outline: none;
+  border-color: #FF9436;
+  box-shadow: 0 0 0 3px rgba(255, 148, 54, 0.28);
+}
+
+/* Mandatory Protocol Alert Surface (Crimson Smoked Glass) */
+.mixero-sms-alert {
+  background: linear-gradient(180deg, rgba(72, 18, 24, 0.90) 0%, rgba(36, 9, 13, 0.94) 100%);
+  border: 1.5px solid rgba(248, 113, 113, 0.68);
+  box-shadow: 0 12px 28px -10px rgba(180, 24, 36, 0.45);
+}
+
+/* Primary Tangerine Orange CTA */
 .mixero-cta {
-  background: linear-gradient(115deg, #ff1bf0 0%, #8f1fff 52%, #3a2bff 100%);
-  color: #ffffff;
-  text-shadow: 0 1px 2px rgba(10, 0, 35, 0.4);
-  box-shadow: 0 12px 30px -6px rgba(255, 0, 230, 0.52), 0 4px 16px -4px rgba(74, 34, 255, 0.45);
+  background: var(--cta-bg);
+  border: 1.5px solid var(--cta-border);
+  color: #140800;
+  box-shadow: var(--cta-shadow);
 }
 
 .mixero-cta:hover {
-  filter: brightness(1.08);
+  filter: brightness(1.06);
+}
+
+/* Secondary Deep Teal Button with Tangerine Border */
+.mixero-secondary-btn {
+  background: rgba(4, 38, 43, 0.94);
+  border: 1px solid rgba(255, 148, 54, 0.48);
+  color: #F2FCFC;
+}
+
+.mixero-secondary-btn:hover {
+  background: rgba(7, 52, 58, 0.96);
+  border-color: #FF9838;
+}
+
+.mixero-progress-fill {
+  background: var(--progress-bg);
 }
 
 .mixero-fade-text {
-  background: linear-gradient(95deg, #ffffff 0%, #ffbdf9 48%, #cbbdff 100%);
-  -webkit-background-clip: text;
-  background-clip: text;
-  color: transparent;
+  color: #F2FCFC;
 }
 
 .no-scrollbar::-webkit-scrollbar {

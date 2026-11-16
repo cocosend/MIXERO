@@ -5,7 +5,6 @@ import { MixeroLogo } from './GymLogo';
 interface HeaderProps {
   onOpenPWAInstall: () => void;
   onSecretAdminClick: () => void;
-  adminClickCount: number;
   balance?: number;
   onOpenAccount?: () => void;
 }
@@ -13,52 +12,43 @@ interface HeaderProps {
 export const Header: React.FC<HeaderProps> = ({
   onOpenPWAInstall,
   onSecretAdminClick,
-  adminClickCount,
   balance,
   onOpenAccount,
 }) => {
   return (
-    <header className="relative flex items-center justify-between w-full pb-3.5 pt-1 border-b border-fuchsia-200/20">
-      {/* Brand Lockup (5 taps opens Admin Panel) */}
+    <header className="relative flex items-center justify-between w-full pb-3.5 pt-1 border-b border-[#22A8AC]/28 gap-2">
+      {/* Brand Lockup */}
       <button
         type="button"
         onClick={onSecretAdminClick}
-        className="flex items-center gap-3 text-left cursor-pointer active:scale-[0.98] transition-transform select-none min-h-[44px]"
-        title="MIXERO (5 нажатий для панели управления)"
+        className="flex items-center gap-2.5 sm:gap-3 text-left cursor-pointer active:scale-[0.98] transition-transform select-none min-h-[44px] min-w-0"
+        title="MIXERO•CRYPTO"
       >
         <MixeroLogo size={42} hasGlow={true} />
 
-        <div>
-          <div className="flex items-center gap-1.5">
-            <h1 className="font-extrabold text-xl tracking-tight text-white flex items-center gap-1.5 whitespace-nowrap">
-              <span className="mixero-fade-text">MIXERO</span>
-              <span className="text-base leading-none" role="img" aria-label="cassette">
-                📼
-              </span>
-            </h1>
-            {adminClickCount > 0 && adminClickCount < 5 && (
-              <span className="text-[11px] font-mono text-pink-200 font-bold">
-                {5 - adminClickCount}
-              </span>
-            )}
-          </div>
-          <p className="text-[11px] text-fuchsia-100/75 font-medium whitespace-nowrap">
-            No-Log · USDT Protocol
+        <div className="min-w-0">
+          <h1 className="mixero-display font-extrabold text-[14px] sm:text-lg tracking-[-0.02em] text-[#F2FCFC] flex items-center whitespace-nowrap">
+            <span>MIXERO</span>
+            <span className="text-[#FF8424] mx-0.5">•</span>
+            <span>CRYPTO</span>
+          </h1>
+          <p className="text-[10px] sm:text-[11px] font-mono uppercase tracking-[0.06em] text-[#96C8CB] font-bold whitespace-nowrap">
+            NO-LOG USDT · PROTOCOL
           </p>
         </div>
       </button>
 
-      {/* Action Controls (Large Touch Targets for iPhone) */}
+      {/* Action Controls */}
       <div className="flex items-center gap-2 shrink-0">
         {balance !== undefined && onOpenAccount && (
           <button
             type="button"
             onClick={onOpenAccount}
-            className="min-h-[44px] px-3.5 py-2 rounded-2xl border border-fuchsia-200/25 bg-[#12043d]/80 backdrop-blur-md hover:border-fuchsia-300/60 text-white transition flex items-center gap-2 text-xs font-mono font-bold active:scale-[0.97] whitespace-nowrap"
+            className="min-h-[44px] px-3.5 rounded-xl mixero-pill text-[#F2FCFC] hover:border-[#FF9436] transition flex items-center gap-2 text-xs font-mono font-bold active:scale-[0.97] whitespace-nowrap"
             title="Открыть кабинет"
           >
-            <Wallet className="w-4 h-4 text-fuchsia-300" />
-            <span className="tabular-nums text-pink-200">
+            <Wallet className="w-4 h-4 text-[#FF9838]" />
+            <span className="tabular-nums">
               {balance.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 2 })} $
             </span>
           </button>
@@ -67,10 +57,10 @@ export const Header: React.FC<HeaderProps> = ({
         <button
           type="button"
           onClick={onOpenPWAInstall}
-          className="min-h-[44px] min-w-[44px] px-3 py-2 rounded-2xl border border-fuchsia-200/25 bg-[#12043d]/80 backdrop-blur-md hover:border-violet-300/60 text-white transition flex items-center justify-center gap-1.5 text-xs font-semibold active:scale-[0.97] whitespace-nowrap"
+          className="min-h-[44px] min-w-[44px] px-3 rounded-xl mixero-secondary-btn transition flex items-center justify-center gap-1.5 text-xs font-bold active:scale-[0.97] whitespace-nowrap"
           title="Установить на iPhone"
         >
-          <Smartphone className="w-4 h-4 text-fuchsia-300" />
+          <Smartphone className="w-4 h-4 text-[#FF9838]" />
           <span className="hidden sm:inline">iOS App</span>
         </button>
       </div>

@@ -1,14 +1,14 @@
 {
   "id": "/",
-  "name": "MIXERO 📼 — Анонимный протокол USDT",
-  "short_name": "MIXERO",
-  "description": "Децентрализованный протокол очистки и разрыва цифрового следа USDT (TRC-20 / ERC-20) без сохранения логов.",
+  "name": "MIXERO•CRYPTO",
+  "short_name": "MIXERO•CRYPTO",
+  "description": "MIXERO•CRYPTO — децентрализованный протокол очистки и разрыва цифрового следа USDT (TRC-20 / ERC-20) без сохранения логов.",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",
   "orientation": "portrait",
-  "background_color": "#16028c",
-  "theme_color": "#d400d4",
+  "background_color": "#03262A",
+  "theme_color": "#053E45",
   "icons": [
     {
       "src": "/pwa-192x192.png",

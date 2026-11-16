@@ -20,8 +20,8 @@ export const QRCodeDisplay: React.FC<QRCodeDisplayProps> = ({
       width: size,
       margin: 1,
       color: {
-        dark: '#06090e',
-        light: '#ffffff',
+        dark: '#022024',
+        light: '#FFFFFF',
       },
     })
       .then((url) => setDataUrl(url))
@@ -34,15 +34,15 @@ export const QRCodeDisplay: React.FC<QRCodeDisplayProps> = ({
     return (
       <div
         style={{ width: size, height: size }}
-        className={`flex items-center justify-center bg-[#0a0e16] rounded-2xl border border-white/10 ${className}`}
+        className={`flex items-center justify-center bg-[#03252A]/85 rounded-2xl border border-[#22A8AC]/35 ${className}`}
       >
-        <span className="text-xs text-slate-500 font-mono">QR...</span>
+        <span className="text-xs text-[#96C8CB] font-mono">QR...</span>
       </div>
     );
   }
 
   return (
-    <div className={`p-3 bg-white rounded-2xl shadow-xl flex items-center justify-center ${className}`}>
+    <div className={`p-3 bg-white rounded-2xl border border-[#FF9838]/60 shadow-lg flex items-center justify-center ${className}`}>
       <img
         src={dataUrl}
         alt={`QR code for ${value}`}

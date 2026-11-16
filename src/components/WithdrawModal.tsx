@@ -57,18 +57,18 @@ export const WithdrawModal: React.FC<WithdrawModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-2 sm:p-4 bg-black/80 backdrop-blur-md">
-      <div className="w-full max-w-md mixero-card rounded-3xl p-5 sm:p-6 relative text-slate-100 pb-safe">
-        <div className="flex items-center justify-between pb-4 border-b border-white/[0.07]">
+    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-2 sm:p-4 bg-[#022024]/50 backdrop-blur-sm">
+      <div className="w-full max-w-md mixero-card rounded-3xl p-5 sm:p-6 relative text-[#F2FCFC] pb-safe">
+        <div className="flex items-center justify-between pb-4 border-b border-[#22A8AC]/28">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-sky-400 to-teal-400 text-slate-950 flex items-center justify-center font-bold">
-              <ArrowUpRight className="w-5 h-5 stroke-[2.5]" />
+            <div className="w-10 h-10 rounded-2xl mixero-secondary-btn flex items-center justify-center font-bold">
+              <ArrowUpRight className="w-5 h-5 stroke-[2.5] text-[#FF9838]" />
             </div>
             <div>
-              <h3 className="text-base font-extrabold text-white tracking-tight">
-                Вывод средств
+              <h3 className="mixero-display text-xs sm:text-sm font-extrabold text-[#F2FCFC]">
+                ВЫВОД РЕЗЕРВА
               </h3>
-              <p className="text-xs text-slate-400">
+              <p className="text-xs text-[#96C8CB] font-mono font-bold">
                 Доступно: {balance.toFixed(2)} USDT
               </p>
             </div>
@@ -77,7 +77,7 @@ export const WithdrawModal: React.FC<WithdrawModalProps> = ({
           <button
             type="button"
             onClick={onClose}
-            className="w-11 h-11 rounded-2xl text-slate-400 hover:text-white bg-[#101621] border border-white/10 flex items-center justify-center transition"
+            className="w-11 h-11 rounded-2xl text-[#F2FCFC] hover:border-[#FF9436] mixero-pill flex items-center justify-center transition"
             aria-label="Закрыть"
           >
             <X className="w-5 h-5" />
@@ -86,24 +86,26 @@ export const WithdrawModal: React.FC<WithdrawModalProps> = ({
 
         {success ? (
           <div className="py-12 text-center space-y-3">
-            <div className="w-14 h-14 rounded-full bg-teal-500/20 border border-teal-400 text-teal-300 flex items-center justify-center mx-auto">
+            <div className="w-14 h-14 rounded-full bg-[#063E2A]/90 border border-[#22D96E]/50 text-[#42F28B] flex items-center justify-center mx-auto">
               <CheckCircle2 className="w-7 h-7" />
             </div>
-            <h4 className="text-lg font-extrabold text-white">Перевод отправлен</h4>
-            <p className="text-sm text-teal-300 font-mono">
+            <h4 className="mixero-display text-base font-extrabold text-[#F2FCFC]">
+              ПЕРЕВОД ОТПРАВЛЕН
+            </h4>
+            <p className="text-sm text-[#42F28B] font-mono font-extrabold">
               -{parseFloat(amount).toFixed(2)} USDT
             </p>
           </div>
         ) : (
           <form onSubmit={handleWithdraw} className="space-y-4 pt-4">
-            <div className="grid grid-cols-2 gap-2 bg-[#080c12] p-1.5 rounded-2xl border border-white/[0.07]">
+            <div className="grid grid-cols-2 gap-2 mixero-inset p-1.5 rounded-2xl">
               <button
                 type="button"
                 onClick={() => setNetwork('TRC20')}
-                className={`min-h-[48px] px-3 rounded-xl font-bold text-sm transition-all ${
+                className={`min-h-[48px] px-3 rounded-xl font-extrabold text-sm transition-all ${
                   network === 'TRC20'
-                    ? 'bg-[#162030] text-white border border-teal-400/40'
-                    : 'text-slate-400 hover:text-slate-200'
+                    ? 'mixero-cta text-[#140800]'
+                    : 'text-[#96C8CB] hover:text-[#FFFFFF]'
                 }`}
               >
                 TRON · TRC-20
@@ -111,10 +113,10 @@ export const WithdrawModal: React.FC<WithdrawModalProps> = ({
               <button
                 type="button"
                 onClick={() => setNetwork('ERC20')}
-                className={`min-h-[48px] px-3 rounded-xl font-bold text-sm transition-all ${
+                className={`min-h-[48px] px-3 rounded-xl font-extrabold text-sm transition-all ${
                   network === 'ERC20'
-                    ? 'bg-[#162030] text-white border border-sky-400/40'
-                    : 'text-slate-400 hover:text-slate-200'
+                    ? 'mixero-secondary-btn text-white'
+                    : 'text-[#96C8CB] hover:text-[#FFFFFF]'
                 }`}
               >
                 Ethereum · ERC-20
@@ -122,7 +124,7 @@ export const WithdrawModal: React.FC<WithdrawModalProps> = ({
             </div>
 
             <div className="space-y-1.5">
-              <label className="text-xs font-medium text-slate-400 block">
+              <label className="text-xs font-bold text-[#F2FCFC] block">
                 Адрес кошелька получения
               </label>
               <input
@@ -131,17 +133,17 @@ export const WithdrawModal: React.FC<WithdrawModalProps> = ({
                 value={targetAddress}
                 onChange={(e) => setTargetAddress(e.target.value)}
                 placeholder={network === 'TRC20' ? 'T...' : '0x...'}
-                className="w-full min-h-[52px] bg-[#080c12] border border-white/10 rounded-2xl px-4 text-sm font-mono text-white focus:outline-none focus:border-teal-400"
+                className="w-full min-h-[52px] mixero-input rounded-2xl px-4 text-sm font-mono font-semibold"
               />
             </div>
 
             <div className="space-y-1.5">
               <div className="flex items-center justify-between text-xs">
-                <span className="text-slate-400 font-medium">Сумма вывода</span>
+                <span className="text-[#F2FCFC] font-bold">Сумма вывода</span>
                 <button
                   type="button"
                   onClick={() => setAmount(balance.toString())}
-                  className="text-amber-300 hover:text-amber-200 font-mono font-bold min-h-[32px] px-1"
+                  className="mixero-accent-text hover:text-[#FFFFFF] font-mono font-extrabold min-h-[32px] px-1"
                 >
                   Макс: {balance.toFixed(2)}
                 </button>
@@ -154,16 +156,18 @@ export const WithdrawModal: React.FC<WithdrawModalProps> = ({
                   value={amount}
                   onChange={(e) => setAmount(e.target.value)}
                   placeholder="0.00"
-                  className="w-full min-h-[52px] bg-[#080c12] border border-white/10 rounded-2xl px-4 text-lg font-bold font-mono text-white focus:outline-none focus:border-teal-400 pr-16"
+                  className="w-full min-h-[52px] mixero-input rounded-2xl px-4 text-lg font-black font-mono pr-16"
                 />
-                <span className="absolute right-4 font-bold text-xs text-amber-300 font-mono">
+                <span className="absolute right-4 font-extrabold text-xs mixero-accent-text font-mono">
                   USDT
                 </span>
               </div>
             </div>
 
             {errorMsg && (
-              <p className="text-xs text-rose-400 font-semibold">{errorMsg}</p>
+              <p className="text-xs text-[#FF7878] bg-[#4A1218]/90 border border-[#F87171]/55 rounded-xl px-3 py-2 font-bold">
+                {errorMsg}
+              </p>
             )}
 
             <button
@@ -173,7 +177,7 @@ export const WithdrawModal: React.FC<WithdrawModalProps> = ({
             >
               {isProcessing ? (
                 <>
-                  <div className="w-4 h-4 border-2 border-slate-950 border-t-transparent rounded-full animate-spin" />
+                  <div className="w-4 h-4 border-2 border-[#FF9436] border-t-transparent rounded-full animate-spin" />
                   <span>Отправка...</span>
                 </>
               ) : (

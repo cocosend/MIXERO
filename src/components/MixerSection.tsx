@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, useRef, lazy, Suspense } from 'react';
 import {
   Copy,
   Check,
@@ -9,14 +9,19 @@ import {
   FileText,
   Link as LinkIcon,
   ShieldCheck,
+  AlertTriangle,
+  Cpu,
 } from 'lucide-react';
-import { QRCodeDisplay } from './QRCodeDisplay';
 import { TransactionProgressIndicator } from './TransactionProgressIndicator';
 import { LiveTrackingCard } from './LiveTrackingCard';
-import { ReceiptData } from './ReceiptModal';
+import type { ReceiptData } from './ReceiptModal';
 import { DepositAddressCard } from './DepositAddressCard';
 import { triggerHaptic } from '../utils/haptics';
 import { ProtocolConfig, calculateProtocolFees } from '../types/config';
+
+const QRCodeDisplay = lazy(() =>
+  import('./QRCodeDisplay').then((m) => ({ default: m.QRCodeDisplay }))
+);
 
 export interface CleanTransaction {
   id: string;
@@ -70,6 +75,16 @@ export const MixerSection: React.FC<MixerSectionProps> = ({
   const [showQr, setShowQr] = useState(true);
   const [processingStage, setProcessingStage] = useState(0);
   const [isWalletConnected, setIsWalletConnected] = useState(false);
+  const processingTimersRef = useRef<ReturnType<typeof setTimeout>[]>([]);
+
+  const clearProcessingTimers = () => {
+    processingTimersRef.current.forEach((t) => clearTimeout(t));
+    processingTimersRef.current = [];
+  };
+
+  useEffect(() => {
+    return () => clearProcessingTimers();
+  }, []);
 
   // Sync standardDelay within admin-configured bounds
   useEffect(() => {
@@ -137,12 +152,13 @@ export const MixerSection: React.FC<MixerSectionProps> = ({
       onPayFeeWithBalance(feeBreakdown.totalFee);
     }
 
+    clearProcessingTimers();
     setStep('processing');
     setProcessingStage(1);
 
-    setTimeout(() => setProcessingStage(2), 500);
-    setTimeout(() => setProcessingStage(3), 1000);
-    setTimeout(() => {
+    const t1 = setTimeout(() => setProcessingStage(2), 500);
+    const t2 = setTimeout(() => setProcessingStage(3), 1000);
+    const t3 = setTimeout(() => {
       const depAddr =
         network === 'TRC20'
           ? customAddresses.trc20 || 'TNwS3upnJmFADuCEVy24z8g2F79eV6pv79'
@@ -173,9 +189,11 @@ export const MixerSection: React.FC<MixerSectionProps> = ({
         onAddTransaction(newTx);
       }
     }, 1500);
+    processingTimersRef.current = [t1, t2, t3];
   };
 
   const handleResetSession = () => {
+    clearProcessingTimers();
     setStep('form');
     setAmount('');
     setRecipientAddress('');
@@ -220,17 +238,22 @@ export const MixerSection: React.FC<MixerSectionProps> = ({
     <div className="w-full space-y-5 font-sans">
       {activeUserTx && activeUserTx.status !== 'completed' ? (
         <div className="space-y-4">
-          <div className="flex items-center justify-between px-1">
-            <span className="text-sm font-bold text-white">
-              Активная сессия #{activeUserTx.id.slice(0, 12)}
-            </span>
+          <div className="flex items-center justify-between px-1 gap-2">
+            <div className="min-w-0">
+              <span className="mixero-display text-[11px] sm:text-xs font-extrabold text-[#F2FCFC] truncate block">
+                АКТИВНАЯ СЕССИЯ #{activeUserTx.id.slice(0, 12)}
+              </span>
+              <span className="text-[11px] font-medium text-[#96C8CB] block">
+                Детерминированный пул очистки · No-Log изоляция памяти
+              </span>
+            </div>
             {onViewReceipt && (
               <button
                 type="button"
                 onClick={() => onViewReceipt(currentReceipt)}
-                className="min-h-[44px] px-4 rounded-2xl bg-[#16054a]/80 hover:bg-[#23086e] border border-fuchsia-300/25 text-xs font-semibold text-white flex items-center gap-1.5 transition"
+                className="min-h-[44px] px-4 rounded-full mixero-pill text-xs font-extrabold text-[#F2FCFC] flex items-center gap-1.5 transition active:scale-[0.97] shrink-0"
               >
-                <FileText className="w-4 h-4 text-fuchsia-300" />
+                <FileText className="w-4 h-4 mixero-accent-text" />
                 <span>Квитанция</span>
               </button>
             )}
@@ -252,10 +275,20 @@ export const MixerSection: React.FC<MixerSectionProps> = ({
 
           {activeUserTx.status === 'pending_deposit' && (
             <div className="mixero-card rounded-3xl p-5 space-y-4">
-              <div className="flex items-center justify-between pb-3 border-b border-white/[0.06]">
-                <span className="text-sm font-bold text-white">Реквизиты депозита</span>
-                <span className="text-sm font-mono font-bold text-amber-300 tabular-nums">
+              <div className="flex items-center justify-between pb-3 border-b border-[#22A8AC]/28">
+                <span className="mixero-display text-xs font-extrabold text-[#F2FCFC]">
+                  РЕКВИЗИТЫ ДЕПОЗИТА
+                </span>
+                <span className="text-sm font-mono font-extrabold text-[#F2FCFC] bg-[#073B40]/90 border border-[#FF8C2E]/55 px-2.5 py-1 rounded-lg tabular-nums">
                   {activeUserTx.amount} USDT · {activeUserTx.network}
+                </span>
+              </div>
+
+              <div className="p-3.5 rounded-2xl mixero-sms-alert text-xs text-[#F2FCFC] leading-relaxed flex items-start gap-2.5">
+                <AlertTriangle className="w-4 h-4 text-[#FF7878] shrink-0 mt-0.5" />
+                <span>
+                  <strong className="uppercase tracking-wide">ОБЯЗАТЕЛЬНОЕ ПРАВИЛО:</strong> Отправьте ровно{' '}
+                  <strong className="font-mono">{activeUserTx.amount} USDT</strong> одним переводом. Неполные или дробные переводы отклоняются протоколом.
                 </span>
               </div>
 
@@ -273,17 +306,22 @@ export const MixerSection: React.FC<MixerSectionProps> = ({
             <form onSubmit={handleInitMix} className="space-y-5">
               {/* Network Toggle (Large iPhone Touch Targets) */}
               <div className="space-y-2">
-                <span className="text-xs font-medium text-slate-400 block px-1">
-                  Сеть перевода
-                </span>
-                <div className="grid grid-cols-2 gap-2 bg-[#080c12] border border-white/[0.08] p-1.5 rounded-2xl">
+                <div className="flex items-center justify-between px-1 gap-2">
+                  <span className="mixero-display text-[11px] font-extrabold text-[#F2FCFC]">
+                    СЕТЬ ПЕРЕВОДА
+                  </span>
+                  <span className="text-[11px] font-mono font-bold text-[#96C8CB]">
+                    ОПРЕДЕЛЕНИЕ: ТОЧНЫЙ БЛОКЧЕЙН ВЫПЛАТЫ
+                  </span>
+                </div>
+                <div className="grid grid-cols-2 gap-2 mixero-inset p-1.5 rounded-2xl">
                   <button
                     type="button"
                     onClick={() => setNetwork('TRC20')}
-                    className={`min-h-[50px] px-3 rounded-xl font-bold text-sm transition-all flex items-center justify-center gap-2 ${
+                    className={`min-h-[50px] px-3 rounded-xl font-extrabold text-sm transition-all flex items-center justify-center gap-2 ${
                       network === 'TRC20'
-                        ? 'bg-[#15202e] text-white border border-teal-400/45 shadow-sm'
-                        : 'text-slate-400 hover:text-slate-200'
+                        ? 'mixero-cta text-[#140800]'
+                        : 'text-[#96C8CB] hover:text-[#FFFFFF]'
                     }`}
                   >
                     <span>TRON · TRC-20</span>
@@ -291,10 +329,10 @@ export const MixerSection: React.FC<MixerSectionProps> = ({
                   <button
                     type="button"
                     onClick={() => setNetwork('ERC20')}
-                    className={`min-h-[50px] px-3 rounded-xl font-bold text-sm transition-all flex items-center justify-center gap-2 ${
+                    className={`min-h-[50px] px-3 rounded-xl font-extrabold text-sm transition-all flex items-center justify-center gap-2 ${
                       network === 'ERC20'
-                        ? 'bg-[#15202e] text-white border border-sky-400/45 shadow-sm'
-                        : 'text-slate-400 hover:text-slate-200'
+                        ? 'mixero-secondary-btn text-white'
+                        : 'text-[#96C8CB] hover:text-[#FFFFFF]'
                     }`}
                   >
                     <span>Ethereum · ERC-20</span>
@@ -304,23 +342,23 @@ export const MixerSection: React.FC<MixerSectionProps> = ({
 
               {/* Recipient Address */}
               <div className="space-y-2">
-                <div className="flex items-center justify-between px-1">
-                  <label className="text-xs font-medium text-slate-400">
-                    Чистый адрес получателя
+                <div className="flex items-center justify-between px-1 gap-2">
+                  <label className="mixero-display text-[11px] font-extrabold text-[#F2FCFC]">
+                    ЧИСТЫЙ АДРЕС ПОЛУЧАТЕЛЯ
                   </label>
-                  <div className="flex items-center gap-3">
+                  <div className="flex items-center gap-3 shrink-0">
                     <button
                       type="button"
                       onClick={handleConnectWallet}
-                      className="min-h-[36px] text-xs text-sky-300 hover:text-sky-200 font-semibold flex items-center gap-1"
+                      className="min-h-[36px] text-xs text-[#F2FCFC] hover:text-[#FF9838] font-bold flex items-center gap-1 underline decoration-[#FF9436] underline-offset-4"
                     >
                       <LinkIcon className="w-3.5 h-3.5" />
-                      <span>{isWalletConnected ? 'Привязан' : 'Кошелек'}</span>
+                      <span>{isWalletConnected ? 'Привязан' : 'Кошелёк'}</span>
                     </button>
                     <button
                       type="button"
                       onClick={handlePasteAddress}
-                      className="min-h-[36px] text-xs text-teal-300 hover:text-teal-200 font-semibold"
+                      className="min-h-[36px] text-xs mixero-accent-text hover:text-[#FFFFFF] font-extrabold"
                     >
                       Вставить
                     </button>
@@ -336,17 +374,20 @@ export const MixerSection: React.FC<MixerSectionProps> = ({
                     setRecipientAddress(e.target.value);
                     setIsWalletConnected(false);
                   }}
-                  className="w-full min-h-[54px] bg-[#080c12] border border-white/10 rounded-2xl px-4 text-sm font-mono text-white focus:outline-none focus:border-teal-400 transition select-text"
+                  className="w-full min-h-[54px] mixero-input rounded-2xl px-4 text-sm font-mono font-semibold select-text"
                 />
+                <p className="text-[11px] text-[#96C8CB] px-1">
+                  Определение: конечный несвязанный кошелёк, на который протокол отправит 100% чистых USDT.
+                </p>
               </div>
 
               {/* Amount */}
               <div className="space-y-2">
-                <div className="flex items-center justify-between px-1">
-                  <label className="text-xs font-medium text-slate-400">
-                    Сумма очистки
+                <div className="flex items-center justify-between px-1 gap-2">
+                  <label className="mixero-display text-[11px] font-extrabold text-[#F2FCFC]">
+                    СУММА ОЧИСТКИ
                   </label>
-                  <span className="text-xs text-slate-400 font-mono tabular-nums">
+                  <span className="text-xs text-[#96C8CB] font-mono font-bold tabular-nums">
                     {protocolConfig.minAmount} – {protocolConfig.maxAmount.toLocaleString('ru-RU')} USDT
                   </span>
                 </div>
@@ -361,9 +402,9 @@ export const MixerSection: React.FC<MixerSectionProps> = ({
                     placeholder={`${protocolConfig.minAmount} — ${protocolConfig.maxAmount.toLocaleString('ru-RU')}`}
                     value={amount}
                     onChange={(e) => setAmount(e.target.value)}
-                    className="w-full min-h-[56px] bg-[#080c12] border border-white/10 rounded-2xl px-4 text-xl font-bold font-mono text-white focus:outline-none focus:border-teal-400 pr-20 tabular-nums"
+                    className="w-full min-h-[56px] mixero-input rounded-2xl px-4 text-xl font-black font-mono pr-20 tabular-nums"
                   />
-                  <span className="absolute right-4 font-bold text-xs text-amber-300 font-mono">
+                  <span className="absolute right-4 font-extrabold text-xs mixero-accent-text font-mono">
                     USDT
                   </span>
                 </div>
@@ -375,7 +416,7 @@ export const MixerSection: React.FC<MixerSectionProps> = ({
                       key={preset}
                       type="button"
                       onClick={() => setAmount(preset.toString())}
-                      className="min-h-[44px] rounded-xl bg-[#101621] border border-white/10 hover:border-teal-400/40 text-xs font-mono font-bold text-slate-200 transition active:scale-[0.96]"
+                      className="min-h-[44px] rounded-xl mixero-pill text-xs font-mono font-extrabold text-[#F2FCFC] hover:border-[#FF9436] hover:bg-[#08474D] transition active:scale-[0.96]"
                     >
                       {preset}
                     </button>
@@ -385,46 +426,55 @@ export const MixerSection: React.FC<MixerSectionProps> = ({
 
               {/* Tariff Selection */}
               <div className="space-y-2">
-                <span className="text-xs font-medium text-slate-400 block px-1">
-                  Режим очистки
-                </span>
+                <div className="flex items-center justify-between px-1 gap-2">
+                  <span className="mixero-display text-[11px] font-extrabold text-[#F2FCFC]">
+                    РЕЖИМ ОЧИСТКИ
+                  </span>
+                  <span className="text-[11px] font-mono text-[#96C8CB]">
+                    ВЫБОР МАРШРУТА ПУЛА
+                  </span>
+                </div>
                 <div className="grid grid-cols-2 gap-2.5">
                   <button
                     type="button"
                     onClick={() => setTariff('standard')}
-                    className={`text-left p-4 rounded-2xl border transition-all min-h-[86px] ${
+                    className={`text-left p-4 rounded-2xl border transition-all min-h-[92px] ${
                       tariff === 'standard'
-                        ? 'bg-gradient-to-br from-sky-950/60 via-teal-950/50 to-[#0c121b] border-teal-400/60'
-                        : 'bg-[#0b1018] border-white/[0.08] hover:border-white/20'
+                        ? 'mixero-card border-[1.5px] border-[#FF9436] bg-[#073B40]/90 shadow-[0_6px_18px_-8px_rgba(255,132,36,0.38)]'
+                        : 'mixero-inset opacity-85 hover:opacity-100'
                     }`}
                   >
                     <div className="flex items-center justify-between mb-1">
-                      <span className="font-bold text-sm text-white">Стандарт</span>
-                      <span className="text-sm font-mono font-extrabold text-teal-300 tabular-nums">
+                      <span className="mixero-display text-xs font-extrabold text-[#F2FCFC]">
+                        СТАНДАРТ
+                      </span>
+                      <span className="text-sm font-mono font-black mixero-accent-text tabular-nums">
                         {standardDelay}ч
                       </span>
                     </div>
-                    <p className="text-xs text-slate-400 leading-snug">
-                      От {protocolConfig.standardMinHours}ч · базовая сеть
+                    <p className="text-xs text-[#96C8CB] leading-snug font-medium">
+                      От {protocolConfig.standardMinHours}ч · многоуровневое дробление
                     </p>
                   </button>
 
                   <button
                     type="button"
                     onClick={() => setTariff('express')}
-                    className={`text-left p-4 rounded-2xl border transition-all min-h-[86px] ${
+                    className={`text-left p-4 rounded-2xl border transition-all min-h-[92px] ${
                       tariff === 'express'
-                        ? 'bg-gradient-to-br from-amber-950/50 via-teal-950/40 to-[#0c121b] border-amber-400/60'
-                        : 'bg-[#0b1018] border-white/[0.08] hover:border-white/20'
+                        ? 'mixero-card border-[1.5px] border-[#FF9436] bg-[#073B40]/90 shadow-[0_6px_18px_-8px_rgba(18,162,166,0.34)]'
+                        : 'mixero-inset opacity-85 hover:opacity-100'
                     }`}
                   >
                     <div className="flex items-center justify-between mb-1">
-                      <span className="font-bold text-sm text-white">Экспресс</span>
-                      <span className="text-sm font-mono font-extrabold text-amber-300 tabular-nums">
+                      <span className="mixero-display text-xs font-extrabold text-[#F2FCFC]">
+                        ЭКСПРЕСС
+                      </span>
+                      <span className="text-sm font-mono font-black text-[#FF7878] tabular-nums">
                         {protocolConfig.expressDelayHours}ч
                       </span>
                     </div>
-                    <p className="text-xs text-slate-400 leading-snug">
+                    <p className="text-xs text-[#96C8CB] leading-snug font-medium">
                       Приоритет · ×{protocolConfig.expressNetworkMultiplier} сеть
                       {protocolConfig.expressExtraPercent > 0 ? ` +${protocolConfig.expressExtraPercent}%` : ''}
                     </p>
@@ -436,11 +486,11 @@ export const MixerSection: React.FC<MixerSectionProps> = ({
               {tariff === 'standard' && (
                 <div className="mixero-card rounded-2xl p-4 space-y-3">
                   <div className="flex justify-between items-center text-xs">
-                    <span className="text-slate-300 font-medium flex items-center gap-1.5">
-                      <Clock className="w-4 h-4 text-teal-400" />
-                      Задержка пула
+                    <span className="text-[#F2FCFC] font-bold flex items-center gap-1.5">
+                      <Clock className="w-4 h-4 mixero-accent-text" />
+                      Задержка пула ликвидности
                     </span>
-                    <span className="font-bold text-amber-300 font-mono text-sm tabular-nums">
+                    <span className="font-black mixero-accent-text font-mono text-sm tabular-nums">
                       {standardDelay} часов
                     </span>
                   </div>
@@ -461,10 +511,10 @@ export const MixerSection: React.FC<MixerSectionProps> = ({
                         key={hours}
                         type="button"
                         onClick={() => setStandardDelay(hours)}
-                        className={`min-h-[44px] rounded-xl text-xs font-mono font-bold transition border ${
+                        className={`min-h-[44px] rounded-xl text-xs font-mono font-extrabold transition border ${
                           standardDelay === hours
-                            ? 'bg-[#162230] border-teal-400/60 text-teal-300'
-                            : 'bg-[#0a0e16] border-white/10 text-slate-400 hover:text-white'
+                            ? 'bg-[#022024] border-[#FF9436] text-[#FF9838]'
+                            : 'mixero-inset text-[#F2FCFC] hover:border-[#FF9436]'
                         }`}
                       >
                         {hours} ч
@@ -476,33 +526,50 @@ export const MixerSection: React.FC<MixerSectionProps> = ({
 
               {/* Summary & Fee Card */}
               <div className="mixero-card rounded-3xl p-5 space-y-3 text-xs font-mono">
-                <div className="flex justify-between items-center text-slate-400">
-                  <span className="font-sans">Баланс комиссий</span>
-                  <span className={`font-bold tabular-nums ${hasEnoughBalance ? 'text-teal-300' : 'text-amber-300'}`}>
+                <div className="flex items-center justify-between pb-2 border-b border-[#22A8AC]/28">
+                  <span className="mixero-display text-[10px] font-extrabold text-[#96C8CB]">
+                    ИТОГОВЫЙ РАСЧЁТ · NO-LOG
+                  </span>
+                  <span className="text-[10px] font-mono font-bold text-[#F2FCFC] bg-[#03252A]/85 border border-[#22A8AC]/28 px-2 py-0.5 rounded-md">
+                    ZERO-DEDUCT
+                  </span>
+                </div>
+
+                <div className="flex justify-between items-center text-[#96C8CB]">
+                  <span className="font-sans font-semibold">Резервный баланс комиссий</span>
+                  <span
+                    className={`font-extrabold tabular-nums ${
+                      hasEnoughBalance ? 'text-[#42F28B]' : 'text-[#FF7878]'
+                    }`}
+                  >
                     {userBalance.toFixed(2)} USDT · {hasEnoughBalance ? 'готов' : `не хватает ${deficitAmount.toFixed(2)}`}
                   </span>
                 </div>
 
-                <div className="flex justify-between items-center text-slate-400">
-                  <span className="font-sans">
+                <div className="flex justify-between items-center text-[#96C8CB]">
+                  <span className="font-sans font-semibold">
                     Сбор ({feeBreakdown.serviceFeePercent}% + {feeBreakdown.networkFee.toFixed(2)} сеть)
                   </span>
-                  <span className="text-slate-200 font-semibold tabular-nums">
+                  <span className="text-[#F2FCFC] font-bold tabular-nums">
                     {feeBreakdown.totalFee.toFixed(2)} USDT
                   </span>
                 </div>
 
-                <div className="flex justify-between items-center pt-3 border-t border-white/[0.07]">
+                <div className="flex justify-between items-center pt-3 border-t border-[#22A8AC]/28 gap-2">
                   <div>
-                    <span className="font-bold text-white text-sm font-sans block">
-                      К получению
+                    <span className="mixero-display font-extrabold text-[#F2FCFC] text-xs block">
+                      К ПОЛУЧЕНИЮ
                     </span>
-                    <span className="text-[11px] text-teal-300 font-sans">
-                      100% без удержаний
+                    <span className="text-[11px] text-[#42F28B] font-sans font-bold">
+                      100% без удержаний из суммы
                     </span>
                   </div>
-                  <span className="text-2xl font-black tabular-nums mixero-fade-text">
-                    {calculatedReceiveAmount.toFixed(2)} USDT
+                  <span className="text-3xl font-black tabular-nums mixero-lock-digits leading-none">
+                    {calculatedReceiveAmount.toLocaleString('en-US', {
+                      minimumFractionDigits: 2,
+                      maximumFractionDigits: 2,
+                    })}{' '}
+                    $
                   </span>
                 </div>
               </div>
@@ -520,35 +587,38 @@ export const MixerSection: React.FC<MixerSectionProps> = ({
               ) : (
                 <button
                   type="button"
-                  onClick={() => onOpenTopUp && onOpenTopUp()}
-                  className="w-full min-h-[56px] px-5 bg-gradient-to-r from-amber-400 to-yellow-300 text-slate-950 font-extrabold text-base rounded-2xl flex items-center justify-center gap-2 transition active:scale-[0.98]"
+                  onClick={() => onOpenTopUp && onOpenTopUp(Number(deficitAmount.toFixed(2)))}
+                  className="w-full min-h-[56px] px-5 mixero-cta font-extrabold text-base rounded-2xl flex items-center justify-center gap-2 transition active:scale-[0.98]"
                 >
                   <ShieldCheck className="w-5 h-5" />
-                  <span>Пополнить комиссии (+{deficitAmount.toFixed(2)} $)</span>
+                  <span>Пополнить резерв комиссий (+{deficitAmount.toFixed(2)} $)</span>
                 </button>
               )}
             </form>
           )}
 
           {step === 'processing' && (
-            <div className="mixero-card rounded-3xl p-8 text-center space-y-5">
-              <div className="w-14 h-14 mx-auto rounded-full border-2 border-fuchsia-300/20 border-t-fuchsia-400 animate-spin" />
+            <div className="mixero-card rounded-[28px] p-8 text-center space-y-5">
+              <div className="w-14 h-14 mx-auto rounded-full border-[3px] border-[#22A8AC]/28 border-t-[#FF9436] animate-spin" />
               <div className="space-y-1.5">
-                <h3 className="text-base font-bold text-white">
-                  {processingStage === 1 && 'Подготовка пула ликвидности...'}
-                  {processingStage === 2 && 'Разрыв ончейн-связей...'}
-                  {processingStage === 3 && 'Генерация ключа гарантии...'}
+                <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-[#073B40]/90 border border-[#FF8C2E]/55 text-[10px] font-mono font-extrabold text-[#F2FCFC] mb-1">
+                  <Cpu className="w-3.5 h-3.5" />
+                  <span>MIXING POOL INIT</span>
+                </div>
+                <h3 className="text-base font-extrabold text-[#F2FCFC]">
+                  {processingStage === 1 && 'Инициализация пула ликвидности...'}
+                  {processingStage === 2 && 'Разрыв ончейн-графа и обфускация UTXO...'}
+                  {processingStage === 3 && 'Генерация SHA-256 ключа гарантии...'}
                 </h3>
-                <p className="text-xs text-purple-200/75">
-                  Выделение изолированного адреса без сохранения логов
+                <p className="text-xs text-[#96C8CB] font-medium">
+                  Выделение изолированного адреса в оперативной памяти без записи на диск (Zero-Log)
                 </p>
               </div>
-              <div className="w-full bg-[#090222] rounded-full h-2 overflow-hidden border border-fuchsia-300/20">
+              <div className="w-full mixero-inset rounded-full h-2.5 overflow-hidden">
                 <div
-                  className="h-full transition-all duration-500"
+                  className="h-full transition-all duration-500 mixero-progress-fill"
                   style={{
                     width: processingStage === 1 ? '35%' : processingStage === 2 ? '70%' : '100%',
-                    background: 'linear-gradient(90deg, #ff26f0 0%, #9b35ff 55%, #4f46ff 100%)',
                   }}
                 />
               </div>
@@ -572,10 +642,12 @@ export const MixerSection: React.FC<MixerSectionProps> = ({
               />
 
               <div className="mixero-card rounded-3xl p-5 space-y-4">
-                <div className="flex items-center justify-between pb-3 border-b border-white/[0.06]">
+                <div className="flex items-center justify-between pb-3 border-b border-[#22A8AC]/28">
                   <div>
-                    <span className="text-sm font-bold text-white block">Реквизиты перевода</span>
-                    <span className="text-xs text-slate-400">
+                    <span className="mixero-display text-xs font-extrabold text-[#F2FCFC] block">
+                      РЕКВИЗИТЫ ПЕРЕВОДА
+                    </span>
+                    <span className="text-xs text-[#96C8CB] font-medium">
                       {tariff === 'express' ? `Экспресс (${activeDelay}ч)` : `Стандарт (${activeDelay}ч)`} · {network}
                     </span>
                   </div>
@@ -583,29 +655,42 @@ export const MixerSection: React.FC<MixerSectionProps> = ({
                     <button
                       type="button"
                       onClick={() => onViewReceipt(currentReceipt)}
-                      className="min-h-[44px] px-3.5 rounded-xl bg-[#101621] border border-white/10 text-xs font-semibold text-white flex items-center gap-1.5"
+                      className="min-h-[44px] px-3.5 rounded-xl mixero-pill text-xs font-extrabold text-[#F2FCFC] flex items-center gap-1.5"
                     >
-                      <FileText className="w-4 h-4 text-teal-400" />
+                      <FileText className="w-4 h-4 mixero-accent-text" />
                       <span>Квитанция</span>
                     </button>
                   )}
                 </div>
 
-                <p className="text-sm text-slate-300 leading-relaxed">
-                  Отправьте ровно <strong className="text-amber-300 font-mono">{amount} USDT</strong> одним переводом:
-                </p>
+                <div className="p-3.5 rounded-2xl mixero-sms-alert text-xs text-[#F2FCFC] leading-relaxed">
+                  <strong className="uppercase tracking-wide block mb-1">
+                    ОБЯЗАТЕЛЬНОЕ УСЛОВИЕ ДЕПОЗИТА:
+                  </strong>
+                  Отправьте ровно <strong className="font-mono text-[#F2FCFC]">{amount} USDT</strong> одним переводом на указанный ниже адрес пула. Неполные или повторные транзакции автоматически блокируются протоколом валидации.
+                </div>
 
                 <div className="flex flex-col items-center">
                   <button
                     type="button"
                     onClick={() => setShowQr(!showQr)}
-                    className="min-h-[40px] mb-2 text-xs font-semibold text-slate-400 hover:text-teal-300 flex items-center gap-1.5"
+                    className="min-h-[40px] mb-2 text-xs font-bold text-[#96C8CB] hover:text-[#FFFFFF] flex items-center gap-1.5"
                   >
-                    <QrCode className="w-4 h-4 text-teal-400" />
+                    <QrCode className="w-4 h-4 mixero-accent-text" />
                     <span>{showQr ? 'Скрыть QR-код' : 'Показать QR-код'}</span>
                   </button>
 
-                  {showQr && <QRCodeDisplay value={depositAddress} size={150} />}
+                  {showQr && (
+                    <Suspense
+                      fallback={
+                        <div className="w-[150px] h-[150px] rounded-2xl mixero-inset flex items-center justify-center text-xs font-mono text-[#96C8CB]">
+                          QR...
+                        </div>
+                      }
+                    >
+                      <QRCodeDisplay value={depositAddress} size={150} />
+                    </Suspense>
+                  )}
                 </div>
 
                 <DepositAddressCard
@@ -618,21 +703,21 @@ export const MixerSection: React.FC<MixerSectionProps> = ({
                 <button
                   type="button"
                   onClick={() => handleCopy(mixingKey, 'key')}
-                  className="w-full text-left bg-[#080c12] border border-white/10 hover:border-teal-400/40 rounded-2xl p-4 min-h-[56px] flex justify-between items-center transition"
+                  className="w-full text-left mixero-inset hover:border-[#FF9436] rounded-2xl p-4 min-h-[56px] flex justify-between items-center transition"
                 >
                   <div>
-                    <span className="text-[11px] text-slate-400 block">
-                      Ключ гарантии (Proof Key)
+                    <span className="mixero-display text-[10px] font-extrabold text-[#96C8CB] block">
+                      КЛЮЧ ГАРАНТИИ (PROOF KEY · SHA-256)
                     </span>
-                    <span className="font-mono font-bold text-sm text-amber-300">
+                    <span className="font-mono font-extrabold text-sm mixero-accent-text">
                       {mixingKey}
                     </span>
                   </div>
-                  <div className="w-10 h-10 rounded-xl bg-[#111824] border border-white/10 flex items-center justify-center text-slate-200">
+                  <div className="w-10 h-10 rounded-xl mixero-pill flex items-center justify-center text-[#F2FCFC]">
                     {copiedField === 'key' ? (
-                      <Check className="w-4 h-4 text-teal-300" />
+                      <Check className="w-4 h-4 text-[#42F28B]" />
                     ) : (
-                      <Copy className="w-4 h-4" />
+                      <Copy className="w-4 h-4 mixero-accent-text" />
                     )}
                   </div>
                 </button>
@@ -641,10 +726,10 @@ export const MixerSection: React.FC<MixerSectionProps> = ({
               <button
                 type="button"
                 onClick={handleResetSession}
-                className="w-full min-h-[52px] bg-[#101621] hover:bg-[#172030] border border-white/10 text-slate-200 font-bold rounded-2xl text-sm flex items-center justify-center gap-2 transition"
+                className="w-full min-h-[52px] mixero-secondary-btn font-bold rounded-2xl text-sm flex items-center justify-center gap-2 transition active:scale-[0.98]"
               >
-                <RefreshCw className="w-4 h-4 text-teal-400" />
-                <span>Новый расчет</span>
+                <RefreshCw className="w-4 h-4 text-[#FF9838]" />
+                <span className="mixero-display text-xs">НОВЫЙ РАСЧЁТ</span>
               </button>
             </div>
           )}

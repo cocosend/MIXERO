@@ -1,15 +1,17 @@
 import React, { useState } from 'react';
-import { Percent, Plus, Trash2, RotateCcw, CheckCircle2, Clock, Coins } from 'lucide-react';
+import { Percent, Plus, Trash2, RotateCcw, CheckCircle2, Clock, Coins, Fingerprint } from 'lucide-react';
 import { ProtocolConfig, DEFAULT_PROTOCOL_CONFIG, FeeTier } from '../types/config';
 
 interface AdminPricingTabProps {
   protocolConfig: ProtocolConfig;
   onUpdateProtocolConfig: (next: ProtocolConfig) => void;
+  authorizeMutation: (actionLabel: string, mutationFn: () => void | Promise<void>) => void;
 }
 
 export const AdminPricingTab: React.FC<AdminPricingTabProps> = ({
   protocolConfig,
   onUpdateProtocolConfig,
+  authorizeMutation,
 }) => {
   const [draft, setDraft] = useState<ProtocolConfig>(protocolConfig);
   const [presetsText, setPresetsText] = useState(protocolConfig.quickAmountPresets.join(', '));
@@ -32,18 +34,23 @@ export const AdminPricingTab: React.FC<AdminPricingTabProps> = ({
       quickAmountPresets: parsedAmounts.length > 0 ? parsedAmounts : DEFAULT_PROTOCOL_CONFIG.quickAmountPresets,
       standardHourPresets: parsedHours.length > 0 ? parsedHours : DEFAULT_PROTOCOL_CONFIG.standardHourPresets,
     };
-    onUpdateProtocolConfig(updated);
-    setSaved(true);
-    setTimeout(() => setSaved(false), 2000);
+
+    authorizeMutation('Изменение цен, процентов и лимитов протокола', () => {
+      onUpdateProtocolConfig(updated);
+      setSaved(true);
+      setTimeout(() => setSaved(false), 2000);
+    });
   };
 
   const handleReset = () => {
-    setDraft(DEFAULT_PROTOCOL_CONFIG);
-    setPresetsText(DEFAULT_PROTOCOL_CONFIG.quickAmountPresets.join(', '));
-    setHourPresetsText(DEFAULT_PROTOCOL_CONFIG.standardHourPresets.join(', '));
-    onUpdateProtocolConfig(DEFAULT_PROTOCOL_CONFIG);
-    setSaved(true);
-    setTimeout(() => setSaved(false), 2000);
+    authorizeMutation('Сброс тарифов и параметров протокола', () => {
+      setDraft(DEFAULT_PROTOCOL_CONFIG);
+      setPresetsText(DEFAULT_PROTOCOL_CONFIG.quickAmountPresets.join(', '));
+      setHourPresetsText(DEFAULT_PROTOCOL_CONFIG.standardHourPresets.join(', '));
+      onUpdateProtocolConfig(DEFAULT_PROTOCOL_CONFIG);
+      setSaved(true);
+      setTimeout(() => setSaved(false), 2000);
+    });
   };
 
   const updateTier = (id: string, patch: Partial<FeeTier>) => {
@@ -77,40 +84,40 @@ export const AdminPricingTab: React.FC<AdminPricingTabProps> = ({
   return (
     <form onSubmit={handleSave} className="space-y-4">
       {/* Network Fees & Express Settings */}
-      <div className="bg-[#0d131d] border border-white/10 rounded-2xl p-4 space-y-3">
-        <div className="flex items-center gap-2 text-xs font-bold text-white uppercase tracking-wider">
-          <Coins className="w-4 h-4 text-teal-400" />
-          <span>Стоимость сети и Экспресс-режим</span>
+      <div className="mixero-surface rounded-2xl p-4 space-y-3.5">
+        <div className="flex items-center gap-2 text-xs font-extrabold text-[#F2FCFC] mixero-display">
+          <Coins className="w-4 h-4 mixero-accent-text shrink-0" />
+          <span>СТОИМОСТЬ СЕТИ И ЭКСПРЕСС</span>
         </div>
 
-        <div className="grid grid-cols-2 gap-2.5">
-          <label className="space-y-1">
-            <span className="text-[11px] text-slate-400 block">Сеть TRC-20 (USDT)</span>
+        <div className="grid grid-cols-2 gap-3">
+          <label className="space-y-1.5">
+            <span className="text-xs text-[#96C8CB] font-semibold block">Сеть TRC-20 (USDT)</span>
             <input
               type="number"
               step="any"
               min="0"
               value={draft.trc20NetworkFee}
               onChange={(e) => setDraft({ ...draft, trc20NetworkFee: parseFloat(e.target.value) || 0 })}
-              className="w-full min-h-[44px] bg-[#070a0f] border border-white/15 rounded-xl px-3 text-sm font-mono text-white"
+              className="w-full min-h-[46px] mixero-input rounded-xl px-3 text-sm font-mono font-bold"
             />
           </label>
-          <label className="space-y-1">
-            <span className="text-[11px] text-slate-400 block">Сеть ERC-20 (USDT)</span>
+          <label className="space-y-1.5">
+            <span className="text-xs text-[#96C8CB] font-semibold block">Сеть ERC-20 (USDT)</span>
             <input
               type="number"
               step="any"
               min="0"
               value={draft.erc20NetworkFee}
               onChange={(e) => setDraft({ ...draft, erc20NetworkFee: parseFloat(e.target.value) || 0 })}
-              className="w-full min-h-[44px] bg-[#070a0f] border border-white/15 rounded-xl px-3 text-sm font-mono text-white"
+              className="w-full min-h-[46px] mixero-input rounded-xl px-3 text-sm font-mono font-bold"
             />
           </label>
         </div>
 
-        <div className="grid grid-cols-3 gap-2">
-          <label className="space-y-1">
-            <span className="text-[11px] text-slate-400 block">Экспресс ×сеть</span>
+        <div className="grid grid-cols-3 gap-2.5">
+          <label className="space-y-1.5">
+            <span className="text-xs text-[#96C8CB] font-semibold block">Экспресс ×сеть</span>
             <input
               type="number"
               step="any"
@@ -119,11 +126,11 @@ export const AdminPricingTab: React.FC<AdminPricingTabProps> = ({
               onChange={(e) =>
                 setDraft({ ...draft, expressNetworkMultiplier: parseFloat(e.target.value) || 1 })
               }
-              className="w-full min-h-[44px] bg-[#070a0f] border border-white/15 rounded-xl px-3 text-sm font-mono text-white"
+              className="w-full min-h-[46px] mixero-input rounded-xl px-3 text-sm font-mono font-bold"
             />
           </label>
-          <label className="space-y-1">
-            <span className="text-[11px] text-slate-400 block">Экспресс +%</span>
+          <label className="space-y-1.5">
+            <span className="text-xs text-[#96C8CB] font-semibold block">Экспресс +%</span>
             <input
               type="number"
               step="any"
@@ -132,11 +139,11 @@ export const AdminPricingTab: React.FC<AdminPricingTabProps> = ({
               onChange={(e) =>
                 setDraft({ ...draft, expressExtraPercent: parseFloat(e.target.value) || 0 })
               }
-              className="w-full min-h-[44px] bg-[#070a0f] border border-white/15 rounded-xl px-3 text-sm font-mono text-white"
+              className="w-full min-h-[46px] mixero-input rounded-xl px-3 text-sm font-mono font-bold"
             />
           </label>
-          <label className="space-y-1">
-            <span className="text-[11px] text-slate-400 block">Экспресс (ч)</span>
+          <label className="space-y-1.5">
+            <span className="text-xs text-[#96C8CB] font-semibold block">Экспресс (ч)</span>
             <input
               type="number"
               step="1"
@@ -145,37 +152,37 @@ export const AdminPricingTab: React.FC<AdminPricingTabProps> = ({
               onChange={(e) =>
                 setDraft({ ...draft, expressDelayHours: parseInt(e.target.value, 10) || 1 })
               }
-              className="w-full min-h-[44px] bg-[#070a0f] border border-white/15 rounded-xl px-3 text-sm font-mono text-white"
+              className="w-full min-h-[46px] mixero-input rounded-xl px-3 text-sm font-mono font-bold"
             />
           </label>
         </div>
       </div>
 
       {/* Fee Tiers (Percentages by Volume) */}
-      <div className="bg-[#0d131d] border border-white/10 rounded-2xl p-4 space-y-3">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2 text-xs font-bold text-white uppercase tracking-wider">
-            <Percent className="w-4 h-4 text-amber-300" />
-            <span>Проценты комиссии по объёму</span>
+      <div className="mixero-surface rounded-2xl p-4 space-y-3.5">
+        <div className="flex items-center justify-between gap-2">
+          <div className="flex items-center gap-2 text-xs font-extrabold text-[#F2FCFC] mixero-display">
+            <Percent className="w-4 h-4 mixero-accent-text shrink-0" />
+            <span>ПРОЦЕНТЫ ПО ОБЪЁМУ</span>
           </div>
           <button
             type="button"
             onClick={addTier}
-            className="min-h-[36px] px-3 rounded-xl bg-[#15202e] hover:bg-[#1d2b3d] border border-teal-400/30 text-teal-300 text-xs font-bold flex items-center gap-1"
+            className="min-h-[38px] px-3 rounded-xl mixero-pill border-[#FF8C2E]/55 text-[#F2FCFC] hover:bg-[#08474D] text-xs font-extrabold flex items-center gap-1 shrink-0"
           >
             <Plus className="w-3.5 h-3.5" />
             <span>Ступень</span>
           </button>
         </div>
 
-        <div className="space-y-2">
+        <div className="space-y-2.5">
           {draft.feeTiers.map((tier) => (
             <div
               key={tier.id}
-              className="grid grid-cols-12 gap-2 items-center bg-[#070a0f] p-2.5 rounded-xl border border-white/[0.07]"
+              className="grid grid-cols-12 gap-2 items-center mixero-inset p-3 rounded-xl"
             >
-              <div className="col-span-5">
-                <span className="text-[10px] text-slate-500 block">Порог до (пусто = ∞)</span>
+              <div className="col-span-5 space-y-1">
+                <span className="text-[11px] text-[#96C8CB] font-semibold block">Порог до (пусто = ∞)</span>
                 <input
                   type="number"
                   step="any"
@@ -186,12 +193,12 @@ export const AdminPricingTab: React.FC<AdminPricingTabProps> = ({
                       maxAmount: e.target.value === '' ? null : parseFloat(e.target.value) || 0,
                     })
                   }
-                  className="w-full min-h-[38px] bg-[#0d131d] border border-white/10 rounded-lg px-2.5 text-xs font-mono text-white"
+                  className="w-full min-h-[40px] mixero-input rounded-lg px-2.5 text-sm font-mono font-bold"
                 />
               </div>
 
-              <div className="col-span-3">
-                <span className="text-[10px] text-slate-500 block">Ставка %</span>
+              <div className="col-span-3 space-y-1">
+                <span className="text-[11px] text-[#96C8CB] font-semibold block">Ставка %</span>
                 <input
                   type="number"
                   step="any"
@@ -200,25 +207,25 @@ export const AdminPricingTab: React.FC<AdminPricingTabProps> = ({
                   onChange={(e) =>
                     updateTier(tier.id, { percent: parseFloat(e.target.value) || 0 })
                   }
-                  className="w-full min-h-[38px] bg-[#0d131d] border border-white/10 rounded-lg px-2.5 text-xs font-mono text-amber-300 font-bold"
+                  className="w-full min-h-[40px] mixero-input rounded-lg px-2.5 text-sm font-mono mixero-accent-text font-extrabold"
                 />
               </div>
 
-              <div className="col-span-3">
-                <span className="text-[10px] text-slate-500 block">Метка</span>
+              <div className="col-span-3 space-y-1">
+                <span className="text-[11px] text-[#96C8CB] font-semibold block">Метка</span>
                 <input
                   type="text"
                   value={tier.label || ''}
                   onChange={(e) => updateTier(tier.id, { label: e.target.value })}
-                  className="w-full min-h-[38px] bg-[#0d131d] border border-white/10 rounded-lg px-2 text-xs text-slate-200"
+                  className="w-full min-h-[40px] mixero-input rounded-lg px-2 text-xs text-[#F2FCFC] font-semibold"
                 />
               </div>
 
-              <div className="col-span-1 flex justify-end pt-3">
+              <div className="col-span-1 flex justify-end pt-4">
                 <button
                   type="button"
                   onClick={() => removeTier(tier.id)}
-                  className="p-1.5 text-slate-500 hover:text-rose-400"
+                  className="p-2 text-[#96C8CB] hover:text-[#FF7878]"
                   title="Удалить уровень"
                 >
                   <Trash2 className="w-4 h-4" />
@@ -230,40 +237,40 @@ export const AdminPricingTab: React.FC<AdminPricingTabProps> = ({
       </div>
 
       {/* Time, Deep Cycle & Limits */}
-      <div className="bg-[#0d131d] border border-white/10 rounded-2xl p-4 space-y-3">
-        <div className="flex items-center gap-2 text-xs font-bold text-white uppercase tracking-wider">
-          <Clock className="w-4 h-4 text-sky-400" />
-          <span>Лимиты, часы и глубокий цикл</span>
+      <div className="mixero-surface rounded-2xl p-4 space-y-3.5">
+        <div className="flex items-center gap-2 text-xs font-extrabold text-[#F2FCFC] mixero-display">
+          <Clock className="w-4 h-4 mixero-accent-text shrink-0" />
+          <span>ЛИМИТЫ, ЧАСЫ И ЦИКЛ</span>
         </div>
 
-        <div className="grid grid-cols-2 gap-2.5">
-          <label className="space-y-1">
-            <span className="text-[11px] text-slate-400 block">Мин. сумма (USDT)</span>
+        <div className="grid grid-cols-2 gap-3">
+          <label className="space-y-1.5">
+            <span className="text-xs text-[#96C8CB] font-semibold block">Мин. сумма (USDT)</span>
             <input
               type="number"
               step="any"
               min="1"
               value={draft.minAmount}
               onChange={(e) => setDraft({ ...draft, minAmount: parseFloat(e.target.value) || 1 })}
-              className="w-full min-h-[44px] bg-[#070a0f] border border-white/15 rounded-xl px-3 text-sm font-mono text-white"
+              className="w-full min-h-[46px] mixero-input rounded-xl px-3 text-sm font-mono font-bold"
             />
           </label>
-          <label className="space-y-1">
-            <span className="text-[11px] text-slate-400 block">Макс. сумма (USDT)</span>
+          <label className="space-y-1.5">
+            <span className="text-xs text-[#96C8CB] font-semibold block">Макс. сумма (USDT)</span>
             <input
               type="number"
               step="any"
               min="1"
               value={draft.maxAmount}
               onChange={(e) => setDraft({ ...draft, maxAmount: parseFloat(e.target.value) || 100000 })}
-              className="w-full min-h-[44px] bg-[#070a0f] border border-white/15 rounded-xl px-3 text-sm font-mono text-white"
+              className="w-full min-h-[46px] mixero-input rounded-xl px-3 text-sm font-mono font-bold"
             />
           </label>
         </div>
 
-        <div className="grid grid-cols-3 gap-2">
-          <label className="space-y-1">
-            <span className="text-[11px] text-slate-400 block">Стандарт мин (ч)</span>
+        <div className="grid grid-cols-3 gap-2.5">
+          <label className="space-y-1.5">
+            <span className="text-xs text-[#96C8CB] font-semibold block">Стандарт мин (ч)</span>
             <input
               type="number"
               min="1"
@@ -271,11 +278,11 @@ export const AdminPricingTab: React.FC<AdminPricingTabProps> = ({
               onChange={(e) =>
                 setDraft({ ...draft, standardMinHours: parseInt(e.target.value, 10) || 1 })
               }
-              className="w-full min-h-[44px] bg-[#070a0f] border border-white/15 rounded-xl px-3 text-sm font-mono text-white"
+              className="w-full min-h-[46px] mixero-input rounded-xl px-3 text-sm font-mono font-bold"
             />
           </label>
-          <label className="space-y-1">
-            <span className="text-[11px] text-slate-400 block">Стандарт макс (ч)</span>
+          <label className="space-y-1.5">
+            <span className="text-xs text-[#96C8CB] font-semibold block">Стандарт макс (ч)</span>
             <input
               type="number"
               min="1"
@@ -283,11 +290,11 @@ export const AdminPricingTab: React.FC<AdminPricingTabProps> = ({
               onChange={(e) =>
                 setDraft({ ...draft, standardMaxHours: parseInt(e.target.value, 10) || 72 })
               }
-              className="w-full min-h-[44px] bg-[#070a0f] border border-white/15 rounded-xl px-3 text-sm font-mono text-white"
+              className="w-full min-h-[46px] mixero-input rounded-xl px-3 text-sm font-mono font-bold"
             />
           </label>
-          <label className="space-y-1">
-            <span className="text-[11px] text-slate-400 block">Шаг (ч)</span>
+          <label className="space-y-1.5">
+            <span className="text-xs text-[#96C8CB] font-semibold block">Шаг (ч)</span>
             <input
               type="number"
               min="1"
@@ -295,14 +302,14 @@ export const AdminPricingTab: React.FC<AdminPricingTabProps> = ({
               onChange={(e) =>
                 setDraft({ ...draft, standardStepHours: parseInt(e.target.value, 10) || 1 })
               }
-              className="w-full min-h-[44px] bg-[#070a0f] border border-white/15 rounded-xl px-3 text-sm font-mono text-white"
+              className="w-full min-h-[46px] mixero-input rounded-xl px-3 text-sm font-mono font-bold"
             />
           </label>
         </div>
 
-        <div className="grid grid-cols-3 gap-2">
-          <label className="space-y-1">
-            <span className="text-[11px] text-slate-400 block">Порог доп. цикла (ч)</span>
+        <div className="grid grid-cols-3 gap-2.5">
+          <label className="space-y-1.5">
+            <span className="text-xs text-[#96C8CB] font-semibold block">Порог доп. (ч)</span>
             <input
               type="number"
               min="1"
@@ -313,11 +320,11 @@ export const AdminPricingTab: React.FC<AdminPricingTabProps> = ({
                   extendedCycleThresholdHours: parseInt(e.target.value, 10) || 24,
                 })
               }
-              className="w-full min-h-[44px] bg-[#070a0f] border border-white/15 rounded-xl px-3 text-sm font-mono text-white"
+              className="w-full min-h-[46px] mixero-input rounded-xl px-3 text-sm font-mono font-bold"
             />
           </label>
-          <label className="space-y-1">
-            <span className="text-[11px] text-slate-400 block">Доп. цикл (%)</span>
+          <label className="space-y-1.5">
+            <span className="text-xs text-[#96C8CB] font-semibold block">Доп. цикл (%)</span>
             <input
               type="number"
               step="any"
@@ -329,11 +336,11 @@ export const AdminPricingTab: React.FC<AdminPricingTabProps> = ({
                   extendedCyclePercent: parseFloat(e.target.value) || 0,
                 })
               }
-              className="w-full min-h-[44px] bg-[#070a0f] border border-white/15 rounded-xl px-3 text-sm font-mono text-white"
+              className="w-full min-h-[46px] mixero-input rounded-xl px-3 text-sm font-mono font-bold"
             />
           </label>
-          <label className="space-y-1">
-            <span className="text-[11px] text-slate-400 block">Мин. доп. сбор ($)</span>
+          <label className="space-y-1.5">
+            <span className="text-xs text-[#96C8CB] font-semibold block">Мин. сбор ($)</span>
             <input
               type="number"
               step="any"
@@ -345,49 +352,49 @@ export const AdminPricingTab: React.FC<AdminPricingTabProps> = ({
                   extendedCycleMinFee: parseFloat(e.target.value) || 0,
                 })
               }
-              className="w-full min-h-[44px] bg-[#070a0f] border border-white/15 rounded-xl px-3 text-sm font-mono text-white"
+              className="w-full min-h-[46px] mixero-input rounded-xl px-3 text-sm font-mono font-bold"
             />
           </label>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-          <label className="space-y-1">
-            <span className="text-[11px] text-slate-400 block">Пресеты сумм (через запятую)</span>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <label className="space-y-1.5">
+            <span className="text-xs text-[#96C8CB] font-semibold block">Пресеты сумм (через запятую)</span>
             <input
               type="text"
               value={presetsText}
               onChange={(e) => setPresetsText(e.target.value)}
-              className="w-full min-h-[44px] bg-[#070a0f] border border-white/15 rounded-xl px-3 text-xs font-mono text-white"
+              className="w-full min-h-[46px] mixero-input rounded-xl px-3 text-sm font-mono font-bold"
             />
           </label>
-          <label className="space-y-1">
-            <span className="text-[11px] text-slate-400 block">Пресеты часов (через запятую)</span>
+          <label className="space-y-1.5">
+            <span className="text-xs text-[#96C8CB] font-semibold block">Пресеты часов (через запятую)</span>
             <input
               type="text"
               value={hourPresetsText}
               onChange={(e) => setHourPresetsText(e.target.value)}
-              className="w-full min-h-[44px] bg-[#070a0f] border border-white/15 rounded-xl px-3 text-xs font-mono text-white"
+              className="w-full min-h-[46px] mixero-input rounded-xl px-3 text-sm font-mono font-bold"
             />
           </label>
         </div>
 
-        <label className="space-y-1 block">
-          <span className="text-[11px] text-slate-400 block">Примечание буфера блокчейна</span>
+        <label className="space-y-1.5 block">
+          <span className="text-xs text-[#96C8CB] font-semibold block">Примечание буфера блокчейна</span>
           <input
             type="text"
             value={draft.blockchainBufferNote}
             onChange={(e) => setDraft({ ...draft, blockchainBufferNote: e.target.value })}
-            className="w-full min-h-[44px] bg-[#070a0f] border border-white/15 rounded-xl px-3 text-xs text-white"
+            className="w-full min-h-[46px] mixero-input rounded-xl px-3 text-sm font-medium"
           />
         </label>
       </div>
 
       {/* Save / Reset Actions */}
-      <div className="flex gap-2">
+      <div className="flex gap-2.5">
         <button
           type="button"
           onClick={handleReset}
-          className="min-h-[48px] px-4 rounded-2xl bg-[#101621] hover:bg-[#172030] border border-white/10 text-slate-300 text-xs font-bold flex items-center gap-1.5"
+          className="min-h-[50px] px-4 rounded-2xl mixero-pill text-[#F2FCFC] hover:border-[#FF9436] text-sm font-extrabold flex items-center gap-1.5 shrink-0"
         >
           <RotateCcw className="w-4 h-4" />
           <span>Сброс</span>
@@ -395,7 +402,7 @@ export const AdminPricingTab: React.FC<AdminPricingTabProps> = ({
 
         <button
           type="submit"
-          className="flex-1 min-h-[48px] px-4 mixero-cta font-extrabold text-sm rounded-2xl flex items-center justify-center gap-2 transition active:scale-[0.98]"
+          className="flex-1 min-h-[50px] px-4 mixero-cta font-extrabold text-sm rounded-2xl flex items-center justify-center gap-2 transition active:scale-[0.98]"
         >
           {saved ? (
             <>
@@ -403,7 +410,10 @@ export const AdminPricingTab: React.FC<AdminPricingTabProps> = ({
               <span>Цены и проценты сохранены!</span>
             </>
           ) : (
-            <span>Применить ко всему приложению</span>
+            <>
+              <Fingerprint className="w-4 h-4" />
+              <span>Подтвердить WebAuthn и применить</span>
+            </>
           )}
         </button>
       </div>

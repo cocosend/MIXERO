@@ -1,18 +1,36 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, lazy, Suspense } from 'react';
 import { Header } from './components/Header';
 import { MixerSection, CleanTransaction } from './components/MixerSection';
-import { ActivityLog } from './components/ActivityLog';
-import { ProtocolDocs } from './components/ProtocolDocs';
-import { ClientAccount } from './components/ClientAccount';
-import { TopUpModal } from './components/TopUpModal';
-import { WithdrawModal } from './components/WithdrawModal';
-import { ReceiptModal, ReceiptData } from './components/ReceiptModal';
-import { PWAInstallModal } from './components/PWAInstallModal';
-import { AdminPanelModal } from './components/AdminPanelModal';
-import { Layers, History, BookOpen, Key, Wallet } from 'lucide-react';
+import type { ReceiptData } from './components/ReceiptModal';
+import { Layers, History, BookOpen, Wallet } from 'lucide-react';
 import { ClientProfile, AccountTransaction } from './types/account';
 import { ProtocolConfig, DEFAULT_PROTOCOL_CONFIG } from './types/config';
-import { FullAccountSyncPayload } from './utils/apiKeySync';
+import type { FullAccountSyncPayload } from './utils/apiKeySync';
+
+const ActivityLog = lazy(() =>
+  import('./components/ActivityLog').then((m) => ({ default: m.ActivityLog }))
+);
+const ProtocolDocs = lazy(() =>
+  import('./components/ProtocolDocs').then((m) => ({ default: m.ProtocolDocs }))
+);
+const ClientAccount = lazy(() =>
+  import('./components/ClientAccount').then((m) => ({ default: m.ClientAccount }))
+);
+const TopUpModal = lazy(() =>
+  import('./components/TopUpModal').then((m) => ({ default: m.TopUpModal }))
+);
+const WithdrawModal = lazy(() =>
+  import('./components/WithdrawModal').then((m) => ({ default: m.WithdrawModal }))
+);
+const ReceiptModal = lazy(() =>
+  import('./components/ReceiptModal').then((m) => ({ default: m.ReceiptModal }))
+);
+const PWAInstallModal = lazy(() =>
+  import('./components/PWAInstallModal').then((m) => ({ default: m.PWAInstallModal }))
+);
+const AdminPanelModal = lazy(() =>
+  import('./components/AdminPanelModal').then((m) => ({ default: m.AdminPanelModal }))
+);
 
 const SEED_VERSION = 'v2_80k_620h_magenta';
 
@@ -94,22 +112,8 @@ const INITIAL_ACCOUNT_TRANSACTIONS: AccountTransaction[] = [
     status: 'completed',
     txHash: '7a9c8f2e4d1b305e7c8a9f2e4d1b305e7c8a9f2e4d1b305e7c8a9f2e4d1b305e',
     proofKey: 'PROOF_TOP_9941',
-    sshSignature: 'SHA256:MIXERO_9941_TOPUP_VERIFIED',
-    note: 'Зачисление на счет комиссий через TRON шлюз',
-  },
-  {
-    id: 'TX_PAY_7102',
-    type: 'payout',
-    title: 'Финальная выплата на чистый адрес',
-    amount: 3500.0,
-    network: 'TRC20',
-    timestamp: Date.now() - 86400000 * 30,
-    status: 'completed',
-    txHash: '3f8e1a9c7b2d504e6a8b1f3e7c2d504e6a8b1f3e7c2d504e6a8b1f3e7c2d504e',
-    recipientAddress: 'TYDzsXDvGg5x8bFhJ98vKw71jKmPqRst89',
-    proofKey: 'PROOF_PAY_7102',
-    sshSignature: 'SHA256:MIXERO_7102_CLEAN_PAYOUT_VERIFIED',
-    note: '100% сумма доставлена без ончейн-следов',
+    sshSignature: 'SHA256:MIXERO_9941_TOPUP',
+    note: 'Зачисление на счёт комиссий через TRON-шлюз',
   },
 ];
 
@@ -122,7 +126,14 @@ export default function App() {
   const [isWithdrawModalOpen, setIsWithdrawModalOpen] = useState(false);
   const [isReceiptModalOpen, setIsReceiptModalOpen] = useState(false);
   const [activeReceipt, setActiveReceipt] = useState<ReceiptData | null>(null);
-  const [adminClickCount, setAdminClickCount] = useState(0);
+  const [, setAdminClickCount] = useState(0);
+
+  useEffect(() => {
+    const meta = document.querySelector('meta[name="theme-color"]');
+    if (meta) {
+      meta.setAttribute('content', '#053E45');
+    }
+  }, []);
 
   const handleOpenTopUp = (suggestedAmount?: number) => {
     setTopUpSuggestedAmount(suggestedAmount);
@@ -199,10 +210,25 @@ export default function App() {
             const seen = new Set<string>();
             const cleaned: AccountTransaction[] = [];
             for (const item of parsed) {
-              if (item && item.id && !item.id.startsWith('TX_INIT_')) {
+              if (
+                item &&
+                item.id &&
+                !item.id.startsWith('TX_INIT_') &&
+                item.id !== 'TX_PAY_7102'
+              ) {
                 if (!seen.has(item.id)) {
                   seen.add(item.id);
-                  cleaned.push(item);
+                  cleaned.push({
+                    ...item,
+                    sshSignature:
+                      typeof item.sshSignature === 'string'
+                        ? item.sshSignature.replace(/MIXERO_CPP20_/gi, 'MIXERO_')
+                        : item.sshSignature,
+                    note:
+                      typeof item.note === 'string'
+                        ? item.note.replace(/\s*C\+\+20\s*/gi, ' ').replace(/\s{2,}/g, ' ').trim()
+                        : item.note,
+                  });
                 }
               }
             }
@@ -284,6 +310,12 @@ export default function App() {
 
   const clickTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  useEffect(() => {
+    return () => {
+      if (clickTimerRef.current) clearTimeout(clickTimerRef.current);
+    };
+  }, []);
+
   const handleSecretAdminClick = () => {
     setAdminClickCount((prev) => {
       const next = prev + 1;
@@ -325,7 +357,7 @@ export default function App() {
       timestamp: Date.now(),
       status: 'completed',
       txHash: `0x${Math.random().toString(16).slice(2, 10)}...${Math.random().toString(16).slice(2, 6)}`,
-      note: 'Зачисление на счет комиссий',
+      note: 'Зачисление на счёт комиссий',
       proofKey,
       sshSignature: sshSig,
     };
@@ -346,7 +378,7 @@ export default function App() {
     const newTx: AccountTransaction = {
       id: txId,
       type: 'withdrawal',
-      title: 'Вывод на внешний кошелек',
+      title: 'Вывод на внешний кошелёк',
       amount: -amount,
       network,
       timestamp: Date.now(),
@@ -490,27 +522,17 @@ export default function App() {
   ];
 
   return (
-    <div className="min-h-screen flex flex-col text-white relative overflow-x-hidden">
-      {/* Ultra-Saturated Neon Magenta -> Electric Violet Glow Highlight */}
-      <div
-        className="fixed -top-36 left-1/2 -translate-x-1/2 w-[620px] h-[360px] rounded-full blur-[110px] opacity-55 pointer-events-none"
-        style={{
-          background:
-            'radial-gradient(circle, #ff1bf2 0%, #9b1dff 48%, transparent 78%)',
-        }}
-      />
-
-      <div className="w-full max-w-2xl mx-auto flex-1 flex flex-col px-4 sm:px-6 pt-safe pb-24 sm:pb-8 relative z-10">
+    <div className="min-h-screen flex flex-col text-[#F2FCFC] relative overflow-x-hidden">
+      <div className="w-full max-w-2xl mx-auto flex-1 flex flex-col px-4 sm:px-6 pt-safe pb-28 sm:pb-10 relative z-10">
         <Header
           onOpenPWAInstall={() => setIsInstallModalOpen(true)}
           onSecretAdminClick={handleSecretAdminClick}
-          adminClickCount={adminClickCount}
           balance={profile.balance}
           onOpenAccount={() => handleTabChange('account')}
         />
 
         {/* Desktop / Tablet Top Navigation */}
-        <nav className="hidden sm:flex my-4 items-center gap-1.5 p-1.5 bg-[#12043d]/80 backdrop-blur-xl border border-fuchsia-300/20 rounded-2xl">
+        <nav className="hidden sm:flex my-4 items-center gap-1.5 p-1.5 mixero-card rounded-2xl">
           {navItems.map((item) => {
             const Icon = item.icon;
             const active = activeTab === item.id;
@@ -519,13 +541,13 @@ export default function App() {
                 key={item.id}
                 type="button"
                 onClick={() => handleTabChange(item.id)}
-                className={`flex-1 min-h-[44px] px-3 rounded-xl text-sm font-semibold transition-all flex items-center justify-center gap-2 whitespace-nowrap ${
+                className={`flex-1 min-h-[44px] px-3 rounded-xl text-xs mixero-display font-bold transition-all flex items-center justify-center gap-2 whitespace-nowrap ${
                   active
-                    ? 'mixero-cta text-white'
-                    : 'text-purple-100/80 hover:text-white'
+                    ? 'mixero-cta'
+                    : 'text-[#96C8CB] hover:text-[#FFFFFF] hover:bg-[#03252A]/85'
                 }`}
               >
-                <Icon className="w-4 h-4" />
+                <Icon className="w-4 h-4 shrink-0" />
                 <span>{item.label}</span>
               </button>
             );
@@ -547,41 +569,48 @@ export default function App() {
             />
           )}
 
-          {activeTab === 'account' && (
-            <ClientAccount
-              profile={profile}
-              transactions={accountTransactions}
-              onOpenTopUp={() => handleOpenTopUp()}
-              onOpenWithdraw={() => setIsWithdrawModalOpen(true)}
-              onNavigateToMixer={() => handleTabChange('mixer')}
-              onViewReceipt={handleViewReceipt}
-            />
-          )}
+          {activeTab !== 'mixer' && (
+            <Suspense
+              fallback={
+                <div className="mixero-card rounded-3xl p-8 flex items-center justify-center">
+                  <div className="w-7 h-7 rounded-full border-2 border-[#22A8AC]/35 border-t-[#FF9436] animate-spin" />
+                </div>
+              }
+            >
+              {activeTab === 'account' && (
+                <ClientAccount
+                  profile={profile}
+                  transactions={accountTransactions}
+                  onOpenTopUp={() => handleOpenTopUp()}
+                  onOpenWithdraw={() => setIsWithdrawModalOpen(true)}
+                  onNavigateToMixer={() => handleTabChange('mixer')}
+                  onViewReceipt={handleViewReceipt}
+                />
+              )}
 
-          {activeTab === 'activity' && (
-            <ActivityLog transactions={transactions} onViewReceipt={handleViewReceipt} />
-          )}
+              {activeTab === 'activity' && (
+                <ActivityLog transactions={transactions} onViewReceipt={handleViewReceipt} />
+              )}
 
-          {activeTab === 'docs' && <ProtocolDocs protocolConfig={protocolConfig} />}
+              {activeTab === 'docs' && <ProtocolDocs protocolConfig={protocolConfig} />}
+            </Suspense>
+          )}
         </main>
 
-        {/* Minimal Footer */}
-        <footer className="mt-6 pt-4 border-t border-fuchsia-200/20 flex flex-col sm:flex-row items-center justify-between gap-2 text-xs text-purple-100/75">
-          <span>MIXERO 📼 · Zero-Knowledge No-Log Protocol</span>
-          <button
-            type="button"
-            onClick={() => setIsAdminModalOpen(true)}
-            className="min-h-[40px] px-3 text-purple-100 hover:text-white flex items-center gap-1.5 transition"
-          >
-            <Key className="w-3.5 h-3.5" />
-            <span>Панель управления</span>
-          </button>
+        {/* Minimal App Store Footer */}
+        <footer className="mt-6 pt-4 border-t border-[#22A8AC]/28 flex flex-col sm:flex-row items-center justify-between gap-2 text-xs text-[#96C8CB]">
+          <span className="mixero-display text-[10px] tracking-[0.06em] font-bold text-[#F2FCFC]">
+            MIXERO•CRYPTO · ZERO-LOG PROTOCOL
+          </span>
+          <span className="text-[11px] font-mono font-semibold text-[#96C8CB]/80">
+            TRC-20 / ERC-20 · SHA-256
+          </span>
         </footer>
       </div>
 
-      {/* Mobile Fixed Thumb-Zone Bottom Bar (iPhone-optimized) */}
-      <nav className="sm:hidden fixed bottom-0 left-0 right-0 z-40 bg-[#12043d]/88 backdrop-blur-xl border-t border-fuchsia-300/25 pb-safe">
-        <div className="grid grid-cols-4 items-center px-2 pt-1.5 pb-1">
+      {/* Mobile Fixed Thumb-Zone Bottom Bar (Top-10 App Store Dock) */}
+      <nav className="sm:hidden fixed bottom-3 left-3 right-3 z-40 mixero-pill rounded-2xl pb-safe">
+        <div className="grid grid-cols-4 items-center gap-1 px-2 py-1.5">
           {navItems.map((item) => {
             const Icon = item.icon;
             const active = activeTab === item.id;
@@ -590,12 +619,14 @@ export default function App() {
                 key={item.id}
                 type="button"
                 onClick={() => handleTabChange(item.id)}
-                className={`min-h-[48px] flex flex-col items-center justify-center gap-1 rounded-xl transition ${
-                  active ? 'text-fuchsia-200' : 'text-purple-200/70'
+                className={`min-h-[50px] flex flex-col items-center justify-center gap-1 rounded-xl transition ${
+                  active
+                    ? 'bg-[#FF8424] border border-[#FFB36B] text-[#140800] font-extrabold shadow-sm'
+                    : 'text-[#96C8CB] hover:text-[#FFFFFF]'
                 }`}
               >
                 <Icon className="w-5 h-5" />
-                <span className="text-[11px] font-semibold tracking-tight whitespace-nowrap">
+                <span className="text-[11px] font-bold tracking-tight whitespace-nowrap">
                   {item.label}
                 </span>
               </button>
@@ -604,62 +635,74 @@ export default function App() {
         </div>
       </nav>
 
-      {/* Modals */}
-      <TopUpModal
-        isOpen={isTopUpModalOpen}
-        onClose={() => {
-          setIsTopUpModalOpen(false);
-          setTopUpSuggestedAmount(undefined);
-        }}
-        customAddresses={customAddresses}
-        onSuccessTopUp={handleSuccessTopUp}
-        quickPresets={protocolConfig.quickAmountPresets}
-        initialAmount={topUpSuggestedAmount}
-      />
+      {/* Lazy-Loaded Modals */}
+      <Suspense fallback={null}>
+        {isTopUpModalOpen && (
+          <TopUpModal
+            isOpen={isTopUpModalOpen}
+            onClose={() => {
+              setIsTopUpModalOpen(false);
+              setTopUpSuggestedAmount(undefined);
+            }}
+            customAddresses={customAddresses}
+            onSuccessTopUp={handleSuccessTopUp}
+            quickPresets={protocolConfig.quickAmountPresets}
+            initialAmount={topUpSuggestedAmount}
+          />
+        )}
 
-      <WithdrawModal
-        isOpen={isWithdrawModalOpen}
-        onClose={() => setIsWithdrawModalOpen(false)}
-        balance={profile.balance}
-        onSuccessWithdraw={handleSuccessWithdraw}
-      />
+        {isWithdrawModalOpen && (
+          <WithdrawModal
+            isOpen={isWithdrawModalOpen}
+            onClose={() => setIsWithdrawModalOpen(false)}
+            balance={profile.balance}
+            onSuccessWithdraw={handleSuccessWithdraw}
+          />
+        )}
 
-      <ReceiptModal
-        isOpen={isReceiptModalOpen}
-        onClose={() => setIsReceiptModalOpen(false)}
-        receipt={activeReceipt}
-      />
+        {isReceiptModalOpen && (
+          <ReceiptModal
+            isOpen={isReceiptModalOpen}
+            onClose={() => setIsReceiptModalOpen(false)}
+            receipt={activeReceipt}
+          />
+        )}
 
-      <PWAInstallModal
-        isOpen={isInstallModalOpen}
-        onClose={() => setIsInstallModalOpen(false)}
-      />
+        {isInstallModalOpen && (
+          <PWAInstallModal
+            isOpen={isInstallModalOpen}
+            onClose={() => setIsInstallModalOpen(false)}
+          />
+        )}
 
-      <AdminPanelModal
-        isOpen={isAdminModalOpen}
-        onClose={() => setIsAdminModalOpen(false)}
-        transactions={transactions}
-        onUpdateTransactionStatus={handleUpdateTransactionStatus}
-        onUpdateTransaction={handleUpdateTransaction}
-        onDeleteTransaction={handleDeleteTransaction}
-        onAddCustomTransaction={handleAddTransaction}
-        onAddCustomAccountTx={handleAddCustomAccountTx}
-        onUpdateAccountTx={handleUpdateAccountTx}
-        customAddresses={customAddresses}
-        onUpdateAddresses={setCustomAddresses}
-        clientBalance={profile.balance}
-        onUpdateClientBalance={(newBalance) =>
-          setProfile((p) => ({ ...p, balance: newBalance }))
-        }
-        accountTransactions={accountTransactions}
-        onDeleteAccountTx={handleDeleteAccountTx}
-        onClearAllAccountTxs={() => setAccountTransactions([])}
-        profile={profile}
-        onUpdateProfile={(patch) => setProfile((p) => ({ ...p, ...patch }))}
-        onImportSyncPayload={handleImportSyncPayload}
-        protocolConfig={protocolConfig}
-        onUpdateProtocolConfig={setProtocolConfig}
-      />
+        {isAdminModalOpen && (
+          <AdminPanelModal
+            isOpen={isAdminModalOpen}
+            onClose={() => setIsAdminModalOpen(false)}
+            transactions={transactions}
+            onUpdateTransactionStatus={handleUpdateTransactionStatus}
+            onUpdateTransaction={handleUpdateTransaction}
+            onDeleteTransaction={handleDeleteTransaction}
+            onAddCustomTransaction={handleAddTransaction}
+            onAddCustomAccountTx={handleAddCustomAccountTx}
+            onUpdateAccountTx={handleUpdateAccountTx}
+            customAddresses={customAddresses}
+            onUpdateAddresses={setCustomAddresses}
+            clientBalance={profile.balance}
+            onUpdateClientBalance={(newBalance) =>
+              setProfile((p) => ({ ...p, balance: newBalance }))
+            }
+            accountTransactions={accountTransactions}
+            onDeleteAccountTx={handleDeleteAccountTx}
+            onClearAllAccountTxs={() => setAccountTransactions([])}
+            profile={profile}
+            onUpdateProfile={(patch) => setProfile((p) => ({ ...p, ...patch }))}
+            onImportSyncPayload={handleImportSyncPayload}
+            protocolConfig={protocolConfig}
+            onUpdateProtocolConfig={setProtocolConfig}
+          />
+        )}
+      </Suspense>
     </div>
   );
 }
